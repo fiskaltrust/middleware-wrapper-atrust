@@ -1,0 +1,25 @@
+[package]
+name = "middleware-wrapper-atrust"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+tokio = { version = "1.0", features = [ "full" ] }
+hyper = { version = "0.14", features = [ "full" ] }
+anyhow = "1.0"
+log = "0.4"
+
+[lib]
+name = "asigntse"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+FileDescription = "fiskaltrust a.sign TSE wrapper"
+ProductName = "fiskaltrust a.sign TSE wrapper "
+OriginalFilename = "asigntse.dll"
+LegalCopyright = "Copyright © 2021 fiskaltrust consulting gmbh"
+CompanyName = "fiskaltrust consulting gmbh"
