@@ -104,14 +104,7 @@ extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
 }
 
 #[no_mangle]
-extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(
-    proxyUrl: *const i8,
-    proxyUrlLength: u32,
-    proxyUsername: *const i8,
-    proxyUsernameLength: u32,
-    proxyPassword: *const i8,
-    proxyPasswordLength: u32,
-) -> i32 {
+extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyUrlLength: u32, proxyUsername: *const i8, proxyUsernameLength: u32, proxyPassword: *const i8, proxyPasswordLength: u32) -> i32 {
     unimplemented!();
 }
 
