@@ -3,11 +3,13 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_variables)]
 
+use std::iter::FromIterator;
+
 use log::error;
 
 use crate::client::Client;
 use crate::helpers::ffi;
-use crate::idesscd::IDeSscd;
+use crate::idesscd::{IDeSscd, TseStates};
 
 use super::return_codes::ReturnCode;
 
@@ -27,7 +29,19 @@ extern "C" fn at_getLifecycleState(state: *mut LifecycleState) -> i32 {
 
 #[no_mangle]
 extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
+
+    let lifecycle_state: LifecycleState = match tse_info.current_state {
+        TseStates::Uninitialized => LifecycleState::NotInitialized,
+        TseStates::Initialized => LifecycleState::Active,
+        TseStates::Terminated => LifecycleState::Disabled, // TODO: clarify
+    };
+
+    ffi::set_u32_ptr(state as *mut u32, tse_info.current_state as u32);
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -67,7 +81,10 @@ extern "C" fn at_getPublicKey(pubKey: *mut *mut u8, pubKeyLength: *mut u32) -> i
 
 #[no_mangle]
 extern "C" fn at_getPublicKeyWithTse(pubKey: *mut *mut u8, pubKeyLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| { error!("{}", err); ReturnCode::Unknown as i32 });
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
 
     ffi::set_cstr(pubKey, pubKeyLength, tse_info.public_key_base64);
     ReturnCode::ExecutionOk as i32
@@ -80,7 +97,14 @@ extern "C" fn at_getOpenTransactions(transactionNumbers: *mut *mut u32, transact
 
 #[no_mangle]
 extern "C" fn at_getOpenTransactionsWithTse(transactionNumbers: *mut *mut u32, transactionNumbersLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
+
+    ffi::set_u32_buf(transactionNumbers, tse_info.current_started_transaction_numbers.iter().map(|t| t.to_owned() as u32).collect::<Vec<u32>>().as_slice());
+    ffi::set_u32_ptr(transactionNumbersLength, tse_info.current_number_of_started_transactions as u32);
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -100,7 +124,13 @@ extern "C" fn at_getSignatureCounter(counter: *mut u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn at_getSignatureCounterWithTse(counter: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
+
+    ffi::set_u32_ptr(counter, tse_info.current_number_of_signatures as u32);
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -110,7 +140,13 @@ extern "C" fn at_getSignatureAlgorithm(signatureAlgorithm: *mut *mut i8, signatu
 
 #[no_mangle]
 extern "C" fn at_getSignatureAlgorithmWithTse(signatureAlgorithm: *mut *mut i8, signatureAlgorithmLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
+
+    ffi::set_cstr(signatureAlgorithm as *mut *mut u8, signatureAlgorithmLength, tse_info.signature_algorithm);
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -145,7 +181,13 @@ extern "C" fn at_getSerialNumber(serial: *mut *mut u8, serialLength: *mut u32) -
 
 #[no_mangle]
 extern "C" fn at_getSerialNumberWithTse(serial: *mut *mut u8, serialLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
+
+    ffi::set_cstr(serial, serialLength, tse_info.serial_number_octet);
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -155,12 +197,12 @@ extern "C" fn at_preload() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_load() -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
 extern "C" fn at_unload() -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]

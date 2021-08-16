@@ -1,7 +1,7 @@
 use log::*;
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use once_cell::sync::Lazy;
 use tini::Ini;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -97,7 +97,7 @@ fn set_ini() -> Option<Ini> {
     }
 }
 
-static INI: Lazy<Mutex::<Option<Ini>>> = Lazy::new(|| Mutex::new(set_ini()));
+static INI: Lazy<Mutex<Option<Ini>>> = Lazy::new(|| Mutex::new(set_ini()));
 
 fn set_configs() -> HashMap<String, Config> {
     let ini = INI.lock().unwrap();

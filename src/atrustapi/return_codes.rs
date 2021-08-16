@@ -190,7 +190,7 @@ impl ToString for ReturnCode {
             ReturnCode::UnsupportedPremiumFeature => "ERROR_UNSUPPORTED_PREMIUM_FEATURE",
             ReturnCode::NotImplemented => "ERROR_NOT_IMPLEMENTED",
         };
-    
+
         format!("{} ({})", s, *self as i32)
     }
 }

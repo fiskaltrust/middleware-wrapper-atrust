@@ -7,7 +7,7 @@ use uuid::Uuid;
 #[cfg(feature = "mocks")]
 use fake::{Dummy, Fake};
 #[cfg(feature = "mocks")]
-use mockall::{*, predicate::*};
+use mockall::{predicate::*, *};
 
 use crate::helpers::Result;
 
@@ -87,7 +87,7 @@ pub struct FinishTransactionResponse {
 }
 
 #[cfg(feature = "mocks")]
-#[derive(Serialize, Deserialize,)]
+#[derive(Serialize, Deserialize)]
 pub struct DummyInfo(HashMap<String, serde_json::Value>);
 
 #[cfg(feature = "mocks")]
@@ -101,7 +101,7 @@ impl fake::Dummy<HashMap<String, serde_json::Value>> for DummyInfo {
     }
 }
 
-#[derive(Serialize, Deserialize,)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseInfo {
