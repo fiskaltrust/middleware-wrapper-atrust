@@ -1,7 +1,10 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
 #![allow(unused_variables)]
+
+use log::error;
+
+use crate::{client::Client, helpers::ffi, idesscd::*, return_codes::ReturnCode};
 
 #[repr(u32)]
 pub enum TssType {
@@ -141,7 +144,39 @@ extern "C" fn startTransactionWithTse(
     configEntry: *const i8,
     configEntryLength: u32,
 ) -> i32 {
-    unimplemented!();
+    let start_transaction_request = StartTransactionRequest {
+        client_id: ffi::from_cstr(clientId, clientIdLength),
+        process_type: ffi::from_cstr(processType, processTypeLength),
+        process_data_base64: base64::encode(unsafe { ffi::from_cba(processData, processDataLength) }),
+        queue_item_id: uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, "fiskaltrust.eu".as_bytes()),
+        is_retry: false,
+    };
+
+    let StartTransactionResponse {
+        transaction_number,
+        time_stamp,
+        tse_serial_number_octet,
+        client_id,
+        signature_data,
+    } = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.start_transaction(start_transaction_request), |err| {
+        error!("{}", err);
+        ReturnCode::StartTransactionFailed as i32
+    });
+
+    unsafe {
+        ffi::set_u32_ptr(transactionNumber, transaction_number as u32);
+        ffi::set_i64_ptr(logTime, time_stamp.timestamp());
+        ffi::set_u32_ptr(signatureCounter, signature_data.signature_counter as u32);
+        ffi::set_cstr(serialNumber, serialNumberLength, tse_serial_number_octet);
+        let signature_value = try_or_return!(|| base64::decode(signature_data.signature_base64), |err| {
+            error!("{}", err);
+            ReturnCode::RetrieveLogMessageFailed as i32
+        });
+        ffi::set_byte_buf(signatureValue, signature_value.as_slice());
+        ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
+    }
+
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -191,7 +226,31 @@ extern "C" fn updateTransactionWithTse(
     configEntry: *const i8,
     configEntryLength: u32,
 ) -> i32 {
-    unimplemented!();
+    let update_transaction_request = UpdateTransactionRequest {
+        client_id: ffi::from_cstr(clientId, clientIdLength),
+        process_type: ffi::from_cstr(processType, processTypeLength),
+        process_data_base64: base64::encode(unsafe { ffi::from_cba(processData, processDataLength) }),
+        queue_item_id: uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, "fiskaltrust.eu".as_bytes()),
+        is_retry: false,
+        transaction_number: transactionNumber as u64,
+    };
+
+    let update_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.update_transaction(update_transaction_request), |err| {
+        error!("{}", err);
+        ReturnCode::UpdateTransactionFailed as i32
+    });
+
+    unsafe {
+        ffi::set_i64_ptr(logTime, update_transaction_response.time_stamp.timestamp());
+        ffi::set_u32_ptr(signatureCounter, update_transaction_response.signature_data.signature_counter as u32);
+        let signature_value = try_or_return!(|| base64::decode(update_transaction_response.signature_data.signature_base64), |err| {
+            error!("{}", err);
+            ReturnCode::RetrieveLogMessageFailed as i32
+        });
+        ffi::set_byte_buf(signatureValue, signature_value.as_slice());
+        ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
+    }
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -247,7 +306,32 @@ extern "C" fn finishTransactionWithTse(
     configEntry: *const i8,
     configEntryLength: u32,
 ) -> i32 {
-    unimplemented!();
+    let finish_transaction_request = FinishTransactionRequest {
+        client_id: ffi::from_cstr(clientId, clientIdLength),
+        process_type: ffi::from_cstr(processType, processTypeLength),
+        process_data_base64: base64::encode(unsafe { ffi::from_cba(processData, processDataLength) }),
+        queue_item_id: uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, "fiskaltrust.eu".as_bytes()),
+        is_retry: false,
+        transaction_number: transactionNumber as u64,
+    };
+
+    let finish_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.finish_transaction(finish_transaction_request), |err| {
+        error!("{}", err);
+        ReturnCode::FinishTransactionFailed as i32
+    });
+
+    unsafe {
+        ffi::set_i64_ptr(logTime, finish_transaction_response.time_stamp.timestamp());
+        ffi::set_u32_ptr(signatureCounter, finish_transaction_response.signature_data.signature_counter as u32);
+        let signature_value = try_or_return!(|| base64::decode(finish_transaction_response.signature_data.signature_base64), |err| {
+            error!("{}", err);
+            ReturnCode::RetrieveLogMessageFailed as i32
+        });
+        ffi::set_byte_buf(signatureValue, signature_value.as_slice());
+        ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
+    }
+
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]

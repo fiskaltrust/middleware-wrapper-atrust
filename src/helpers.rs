@@ -56,34 +56,35 @@ pub mod rest {
     }
 }
 
+#[allow(clippy::missing_safety_doc)]
 pub mod ffi {
-    pub fn set_u32_ptr(ptr: *mut u32, val: u32) {
+    pub unsafe fn set_u32_ptr(ptr: *mut u32, val: u32) {
         if !ptr.is_null() {
-            unsafe { *ptr = val };
+            *ptr = val;
         }
     }
 
-    pub fn set_i32_ptr(ptr: *mut i32, val: i32) {
+    pub unsafe fn set_i32_ptr(ptr: *mut i32, val: i32) {
         if !ptr.is_null() {
-            unsafe { *ptr = val };
+            *ptr = val;
         }
     }
 
-    pub fn set_i16_ptr(ptr: *mut i16, val: i16) {
+    pub unsafe fn set_i16_ptr(ptr: *mut i16, val: i16) {
         if !ptr.is_null() {
-            unsafe { *ptr = val };
+            *ptr = val;
         }
     }
 
-    pub fn set_i64_ptr(ptr: *mut i64, val: i64) {
+    pub unsafe fn set_i64_ptr(ptr: *mut i64, val: i64) {
         if !ptr.is_null() {
-            unsafe { *ptr = val };
+            *ptr = val;
         }
     }
 
-    pub fn set_u64_ptr(ptr: *mut u64, val: u64) {
+    pub unsafe fn set_u64_ptr(ptr: *mut u64, val: u64) {
         if !ptr.is_null() {
-            unsafe { *ptr = val };
+            *ptr = val;
         }
     }
 
@@ -107,44 +108,36 @@ pub mod ffi {
         unsafe { String::from_utf8_lossy(std::slice::from_raw_parts(cstr as *const u8, cstr_length as usize)).to_string() }
     }
 
-    pub fn from_cba<'a>(cba: *const u8, cba_length: u32) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(cba, cba_length as usize) }
+    pub unsafe fn from_cba<'a>(cba: *const u8, cba_length: u32) -> &'a [u8] {
+        std::slice::from_raw_parts(cba, cba_length as usize)
     }
 
-    pub fn set_byte_buf(ptr: *mut *mut u8, val: &[u8]) {
+    pub unsafe fn set_byte_buf(ptr: *mut *mut u8, val: &[u8]) {
         if !ptr.is_null() {
-            unsafe {
-                *ptr = libc::malloc(val.len()) as *mut u8;
-                std::ptr::copy_nonoverlapping(val.as_ptr(), *ptr, val.len());
-            }
+            *ptr = libc::malloc(val.len()) as *mut u8;
+            std::ptr::copy_nonoverlapping(val.as_ptr(), *ptr, val.len());
         }
     }
 
-    pub fn set_cstr(ptr: *mut *mut u8, cstr_len: *mut u32, val: String) {
+    pub unsafe fn set_cstr(ptr: *mut *mut u8, cstr_len: *mut u32, val: String) {
         if !ptr.is_null() {
-            unsafe {
-                *ptr = libc::malloc(val.len()) as *mut u8;
+            *ptr = libc::malloc(val.len()) as *mut u8;
 
-                std::ptr::copy_nonoverlapping(val.as_ptr(), *ptr as *mut u8, val.len());
-                set_u32_ptr(cstr_len, val.len() as u32);
-            }
+            std::ptr::copy_nonoverlapping(val.as_ptr(), *ptr as *mut u8, val.len());
+            set_u32_ptr(cstr_len, val.len() as u32);
         }
     }
 
-    pub fn set_u32_buf(ptr: *mut *mut u32, val: &[u32]) {
+    pub unsafe fn set_u32_buf(ptr: *mut *mut u32, val: &[u32]) {
         if !ptr.is_null() {
-            unsafe {
-                let val_len = val.len() * std::mem::size_of::<u32>();
-                *ptr = libc::malloc(val_len) as *mut u32;
-                std::ptr::copy_nonoverlapping::<u32>(val.as_ptr(), *ptr, val.len());
-            }
+            let val_len = val.len() * std::mem::size_of::<u32>();
+            *ptr = libc::malloc(val_len) as *mut u32;
+            std::ptr::copy_nonoverlapping::<u32>(val.as_ptr(), *ptr, val.len());
         }
     }
 
-    pub fn free_ptr(ptr: *mut *mut ::std::os::raw::c_void) {
-        unsafe {
-            libc::free(*ptr);
-            *ptr = std::ptr::null_mut::<libc::c_void>();
-        }
+    pub unsafe fn free_ptr(ptr: *mut *mut ::std::os::raw::c_void) {
+        libc::free(*ptr);
+        *ptr = std::ptr::null_mut::<libc::c_void>();
     }
 }

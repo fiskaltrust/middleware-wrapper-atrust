@@ -1,9 +1,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
 #![allow(unused_variables)]
-
-use std::iter::FromIterator;
 
 use log::error;
 
@@ -40,7 +37,7 @@ extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *co
         TseStates::Terminated => LifecycleState::Disabled, // TODO: clarify
     };
 
-    ffi::set_u32_ptr(state as *mut u32, tse_info.current_state as u32);
+    unsafe { ffi::set_u32_ptr(state as *mut u32, tse_info.current_state as u32) };
     ReturnCode::ExecutionOk as i32
 }
 
@@ -86,7 +83,7 @@ extern "C" fn at_getPublicKeyWithTse(pubKey: *mut *mut u8, pubKeyLength: *mut u3
         ReturnCode::Unknown as i32
     });
 
-    ffi::set_cstr(pubKey, pubKeyLength, tse_info.public_key_base64);
+    unsafe { ffi::set_cstr(pubKey, pubKeyLength, tse_info.public_key_base64) };
     ReturnCode::ExecutionOk as i32
 }
 
@@ -102,8 +99,10 @@ extern "C" fn at_getOpenTransactionsWithTse(transactionNumbers: *mut *mut u32, t
         ReturnCode::Unknown as i32
     });
 
-    ffi::set_u32_buf(transactionNumbers, tse_info.current_started_transaction_numbers.iter().map(|t| t.to_owned() as u32).collect::<Vec<u32>>().as_slice());
-    ffi::set_u32_ptr(transactionNumbersLength, tse_info.current_number_of_started_transactions as u32);
+    unsafe {
+        ffi::set_u32_buf(transactionNumbers, tse_info.current_started_transaction_numbers.iter().map(|t| t.to_owned() as u32).collect::<Vec<u32>>().as_slice());
+        ffi::set_u32_ptr(transactionNumbersLength, tse_info.current_number_of_started_transactions as u32);
+    }
     ReturnCode::ExecutionOk as i32
 }
 
@@ -129,7 +128,7 @@ extern "C" fn at_getSignatureCounterWithTse(counter: *mut u32, tseId: *const i8,
         ReturnCode::Unknown as i32
     });
 
-    ffi::set_u32_ptr(counter, tse_info.current_number_of_signatures as u32);
+    unsafe { ffi::set_u32_ptr(counter, tse_info.current_number_of_signatures as u32) };
     ReturnCode::ExecutionOk as i32
 }
 
@@ -145,7 +144,7 @@ extern "C" fn at_getSignatureAlgorithmWithTse(signatureAlgorithm: *mut *mut i8, 
         ReturnCode::Unknown as i32
     });
 
-    ffi::set_cstr(signatureAlgorithm as *mut *mut u8, signatureAlgorithmLength, tse_info.signature_algorithm);
+    unsafe { ffi::set_cstr(signatureAlgorithm as *mut *mut u8, signatureAlgorithmLength, tse_info.signature_algorithm) };
     ReturnCode::ExecutionOk as i32
 }
 
@@ -186,7 +185,7 @@ extern "C" fn at_getSerialNumberWithTse(serial: *mut *mut u8, serialLength: *mut
         ReturnCode::Unknown as i32
     });
 
-    ffi::set_cstr(serial, serialLength, tse_info.serial_number_octet);
+    unsafe { ffi::set_cstr(serial, serialLength, tse_info.serial_number_octet) };
     ReturnCode::ExecutionOk as i32
 }
 
@@ -197,7 +196,11 @@ extern "C" fn at_preload() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_load() -> i32 {
-    ReturnCode::ExecutionOk as i32
+    if crate::config::read_config() {
+        ReturnCode::ExecutionOk as i32
+    } else {
+        ReturnCode::Unknown as i32
+    }
 }
 
 #[no_mangle]

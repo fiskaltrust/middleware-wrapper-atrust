@@ -92,11 +92,11 @@ pub struct DummyInfo(HashMap<String, serde_json::Value>);
 
 #[cfg(feature = "mocks")]
 impl fake::Dummy<HashMap<String, serde_json::Value>> for DummyInfo {
-    fn dummy_with_rng<R: rand::Rng + ?Sized>(config: &HashMap<String, serde_json::Value>, rng: &mut R) -> Self {
+    fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &HashMap<String, serde_json::Value>, _: &mut R) -> Self {
         DummyInfo(HashMap::new())
     }
 
-    fn dummy(config: &HashMap<String, serde_json::Value>) -> Self {
+    fn dummy(_: &HashMap<String, serde_json::Value>) -> Self {
         DummyInfo(HashMap::new())
     }
 }

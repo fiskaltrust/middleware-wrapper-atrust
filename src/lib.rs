@@ -1,5 +1,5 @@
 #[macro_use]
-mod helpers;
+pub mod helpers;
 
 pub mod atrustapi;
 pub use atrustapi::*;

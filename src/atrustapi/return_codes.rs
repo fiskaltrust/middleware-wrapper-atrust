@@ -1,8 +1,5 @@
-#![allow(dead_code)]
-
 use num_enum::TryFromPrimitive;
 
-#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Eq, PartialEq, TryFromPrimitive, Copy, Clone)]
 #[repr(i32)]
 pub enum ReturnCode {

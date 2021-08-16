@@ -1,8 +1,9 @@
 use fake::{Fake, Faker};
 use httpmock::prelude::*;
+use middleware_wrapper_atrust::helpers::ffi;
 use middleware_wrapper_atrust::idesscd::TseInfo;
 use middleware_wrapper_atrust::return_codes::ReturnCode;
-use std::{collections::hash_map, convert::TryFrom};
+use std::convert::TryFrom;
 
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
@@ -13,7 +14,7 @@ fn setup_mock_server() {
 
     std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &server.base_url())).unwrap();
 
-    let hello_mock = server.mock(|when, then| {
+    server.mock(|when, then| {
         when.method(GET).path("/v1/tseinfo");
         then.status(200).header("content-type", "application/json; charset=UTF-8").body(serde_json::ser::to_string(&Faker.fake::<TseInfo>()).unwrap());
     });
@@ -41,4 +42,6 @@ fn api_test() {
     let result: ReturnCode = ReturnCode::try_from(at_get_public_key_with_tse(pub_key.as_mut_ptr(), pub_key_length.as_mut_ptr(), tse_id.as_ptr() as *const i8, tse_id.len() as u32)).unwrap();
 
     assert_eq!(result, ReturnCode::ExecutionOk);
+
+    unsafe { ffi::free_ptr(pub_key.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
 }

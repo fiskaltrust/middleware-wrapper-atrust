@@ -107,24 +107,6 @@ fn set_configs() -> HashMap<String, Config> {
 
 pub static CONFIGS: Lazy<Mutex<HashMap<String, Config>>> = Lazy::new(|| Mutex::new(set_configs()));
 
-pub fn add_tss(config: Config) -> Option<String> {
-    let mut cfg = ok_or_return!(CONFIGS.lock(), |_| None);
-
-    cfg.insert(config.name.clone(), config.clone());
-
-    Some(config.name)
-}
-
-pub fn remove_tss(name: String) -> Option<String> {
-    if name == "default" {
-        return None;
-    }
-
-    some_or_return!(ok_or_return!(CONFIGS.lock(), |_| None).remove(&name), None);
-
-    Some(name)
-}
-
 pub fn get_tss(name: &str) -> Option<Config> {
     trace!("get_tss: {}", name.to_string());
     let c = some_or_return!(ok_or_return!(CONFIGS.lock(), |_| None).get(name), None).clone();
@@ -140,33 +122,6 @@ pub fn get_tss(name: &str) -> Option<Config> {
         time_admin_id: c.time_admin_id,
         time_admin_pwd: c.time_admin_pwd,
     })
-}
-
-pub fn get_all_config_sections() -> Vec<String> {
-    let configs = CONFIGS.lock().unwrap();
-    let keys: Vec<String> = configs.keys().map(|k| k.to_string()).collect();
-
-    keys
-}
-
-pub fn get_tss_id(cfg: &Config) -> Option<u32> {
-    if let Some(vtss_id) = &cfg.atrust_vtss_id {
-        match vtss_id.parse::<u32>() {
-            Ok(id) => Some(id),
-            Err(_) => None,
-        }
-    } else {
-        None
-    }
-}
-
-pub fn has_asigntse() -> bool {
-    for (_, conf) in CONFIGS.lock().unwrap().iter() {
-        if conf.tss_type == TssType::AsignOnline {
-            return true;
-        }
-    }
-    false
 }
 
 pub fn read_config() -> bool {
