@@ -3,9 +3,11 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_variables)]
 
-use crate::idesscd::IDeSscd;
+use log::error;
+
 use crate::client::Client;
 use crate::helpers::ffi;
+use crate::idesscd::IDeSscd;
 
 use super::return_codes::ReturnCode;
 
@@ -65,7 +67,7 @@ extern "C" fn at_getPublicKey(pubKey: *mut *mut u8, pubKeyLength: *mut u32) -> i
 
 #[no_mangle]
 extern "C" fn at_getPublicKeyWithTse(pubKey: *mut *mut u8, pubKeyLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |_| ReturnCode::Unknown as i32);
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| { error!("{}", err); ReturnCode::Unknown as i32 });
 
     ffi::set_cstr(pubKey, pubKeyLength, tse_info.public_key_base64);
     ReturnCode::ExecutionOk as i32

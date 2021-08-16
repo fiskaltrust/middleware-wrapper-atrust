@@ -1,8 +1,8 @@
-use tini::Ini;
 use log::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
+use tini::Ini;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TssType {
@@ -83,25 +83,29 @@ impl Default for Config {
     }
 }
 
-lazy_static! {
-    pub static ref CONFIG_FILE: Mutex<String> = Mutex::new(String::from("asigntseonline.conf"));
-    pub static ref GENERAL_CONFIG: Mutex<GeneralConfig> = Mutex::new(GeneralConfig::default());
-    static ref INI: Mutex::<Option<Ini>> = {
-        Mutex::new(if let Ok(cfg) = CONFIG_FILE.lock() {
-            match Ini::from_file(&cfg.to_string()) {
-                Ok(i) => Some(i),
-                Err(_) => None,
-            }
-        } else {
-            None
-        })
-    };
-    pub static ref CONFIGS: Mutex<HashMap<String, Config>> = {
-        let ini = INI.lock().unwrap();
-        let mut gconf = GENERAL_CONFIG.lock().unwrap();
-        Mutex::new(parse_config(ini.as_ref(), &mut *gconf))
-    };
+pub static CONFIG_FILE: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("asigntseonline.conf")));
+pub static GENERAL_CONFIG: Lazy<Mutex<GeneralConfig>> = Lazy::new(|| Mutex::new(GeneralConfig::default()));
+
+fn set_ini() -> Option<Ini> {
+    if let Ok(cfg) = CONFIG_FILE.lock() {
+        match Ini::from_file(&cfg.to_string()) {
+            Ok(i) => Some(i),
+            Err(_) => None,
+        }
+    } else {
+        None
+    }
 }
+
+static INI: Lazy<Mutex::<Option<Ini>>> = Lazy::new(|| Mutex::new(set_ini()));
+
+fn set_configs() -> HashMap<String, Config> {
+    let ini = INI.lock().unwrap();
+    let mut gconf = GENERAL_CONFIG.lock().unwrap();
+    parse_config(ini.as_ref(), &mut *gconf)
+}
+
+pub static CONFIGS: Lazy<Mutex<HashMap<String, Config>>> = Lazy::new(|| Mutex::new(set_configs()));
 
 pub fn add_tss(config: Config) -> Option<String> {
     let mut cfg = ok_or_return!(CONFIGS.lock(), |_| None);
@@ -170,12 +174,10 @@ pub fn read_config() -> bool {
 }
 
 pub fn set_config_file(path: &str) -> bool {
-    if let Ok(mut f) = CONFIG_FILE.lock() {
-        *f = path.to_string();
-        return true;
-    }
-
-    false
+    *try_or_return!(|| CONFIG_FILE.lock(), |_| false) = path.to_string();
+    *try_or_return!(|| INI.lock(), |_| false) = set_ini();
+    *try_or_return!(|| CONFIGS.lock(), |_| false) = set_configs();
+    true
 }
 
 fn get_default_entry(ini_handle: Option<&Ini>) -> Option<Config> {
@@ -203,14 +205,14 @@ fn get_default_entry(ini_handle: Option<&Ini>) -> Option<Config> {
     t.as_ref()?;
 
     let tss_type = some_or_return!(
-      match some_or_return!(t, None).as_str() {
-        "1" => Some(TssType::AsignOnline),
-        "2" => Some(TssType::CryptoVision),
-        _ => {
-          None
-        }
-      },
-      None
+        match some_or_return!(t, None).as_str() {
+            "1" => Some(TssType::AsignOnline),
+            "2" => Some(TssType::CryptoVision),
+            _ => {
+                None
+            }
+        },
+        None
     );
 
     let atrust_vtss_id: Option<String> = ini.get(&default, "atrust_vtss_id");
@@ -247,64 +249,21 @@ fn parse_config(ini_handle: Option<&Ini>, gconf: &mut GeneralConfig) -> HashMap<
 
             if s_name == "config" {
                 let http_proxy = sec.get(&String::from("http_proxy")).map(|s| s.to_string());
-                let http_proxy_username = sec
-                    .get(&String::from("http_proxy_username"))
-                    .map(|s| s.to_string());
-                let http_proxy_password = sec
-                    .get(&String::from("http_proxy_password"))
-                    .map(|s| s.to_string());
-                let timeout = sec
-                    .get(&String::from("timeout"))
-                    .map(|s| s.parse().unwrap_or(DEFAULT_TIMEOUT_VALUE))
-                    .unwrap_or(DEFAULT_TIMEOUT_VALUE);
-                let retries = sec
-                    .get(&String::from("retries"))
-                    .map(|s| s.parse().unwrap_or(DEFAULT_NUMBER_OF_RETRIES))
-                    .unwrap_or(DEFAULT_NUMBER_OF_RETRIES);
-                let logging_enabled = sec
-                    .get(&String::from("logging_enabled"))
-                    .map(|s| s.to_string().parse().unwrap_or(false))
-                    .unwrap_or(false);
-                let logging_stderr = sec
-                    .get(&String::from("logging_stderr"))
-                    .map(|s| s.to_string().parse().unwrap_or(false))
-                    .unwrap_or(false);
-                let logging_file = sec
-                    .get(&String::from("logging_file"))
-                    .map(|s| s.to_string().parse().unwrap_or(false))
-                    .unwrap_or(false);
-                let log_dir = sec
-                    .get(&String::from("log_dir"))
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| String::from("."));
-                let log_level = sec
-                    .get(&String::from("log_level"))
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| String::from("trace"));
-                let log_append = sec
-                    .get(&String::from("log_append"))
-                    .map(|s| s.to_string().parse().unwrap_or(true))
-                    .unwrap_or(true);
-                let log_colors = sec
-                    .get(&String::from("log_colors"))
-                    .map(|s| s.to_string().parse().unwrap_or(false))
-                    .unwrap_or(false);
-                let log_details = sec
-                    .get(&String::from("log_details"))
-                    .map(|s| s.to_string().parse().unwrap_or(false))
-                    .unwrap_or(false);
-                let log_stderr_colors = sec
-                    .get(&String::from("log_stderr_colors"))
-                    .map(|s| s.to_string().parse().unwrap_or(false))
-                    .unwrap_or(false);
-                let msg_upload_interval = sec
-                    .get(&String::from("msg_upload_interval"))
-                    .map(|s| s.to_string().parse().unwrap_or(DEFAULT_MSG_UPLOAD_INTERVAL))
-                    .unwrap_or(DEFAULT_MSG_UPLOAD_INTERVAL);
-                let max_audit_log_size = sec
-                    .get(&String::from("max_audit_log_size"))
-                    .map(|s| s.to_string().parse().unwrap_or(DEFAULT_MAX_AUDIT_LOG_SIZE))
-                    .unwrap_or(DEFAULT_MAX_AUDIT_LOG_SIZE);
+                let http_proxy_username = sec.get(&String::from("http_proxy_username")).map(|s| s.to_string());
+                let http_proxy_password = sec.get(&String::from("http_proxy_password")).map(|s| s.to_string());
+                let timeout = sec.get(&String::from("timeout")).map(|s| s.parse().unwrap_or(DEFAULT_TIMEOUT_VALUE)).unwrap_or(DEFAULT_TIMEOUT_VALUE);
+                let retries = sec.get(&String::from("retries")).map(|s| s.parse().unwrap_or(DEFAULT_NUMBER_OF_RETRIES)).unwrap_or(DEFAULT_NUMBER_OF_RETRIES);
+                let logging_enabled = sec.get(&String::from("logging_enabled")).map(|s| s.to_string().parse().unwrap_or(false)).unwrap_or(false);
+                let logging_stderr = sec.get(&String::from("logging_stderr")).map(|s| s.to_string().parse().unwrap_or(false)).unwrap_or(false);
+                let logging_file = sec.get(&String::from("logging_file")).map(|s| s.to_string().parse().unwrap_or(false)).unwrap_or(false);
+                let log_dir = sec.get(&String::from("log_dir")).map(|s| s.to_string()).unwrap_or_else(|| String::from("."));
+                let log_level = sec.get(&String::from("log_level")).map(|s| s.to_string()).unwrap_or_else(|| String::from("trace"));
+                let log_append = sec.get(&String::from("log_append")).map(|s| s.to_string().parse().unwrap_or(true)).unwrap_or(true);
+                let log_colors = sec.get(&String::from("log_colors")).map(|s| s.to_string().parse().unwrap_or(false)).unwrap_or(false);
+                let log_details = sec.get(&String::from("log_details")).map(|s| s.to_string().parse().unwrap_or(false)).unwrap_or(false);
+                let log_stderr_colors = sec.get(&String::from("log_stderr_colors")).map(|s| s.to_string().parse().unwrap_or(false)).unwrap_or(false);
+                let msg_upload_interval = sec.get(&String::from("msg_upload_interval")).map(|s| s.to_string().parse().unwrap_or(DEFAULT_MSG_UPLOAD_INTERVAL)).unwrap_or(DEFAULT_MSG_UPLOAD_INTERVAL);
+                let max_audit_log_size = sec.get(&String::from("max_audit_log_size")).map(|s| s.to_string().parse().unwrap_or(DEFAULT_MAX_AUDIT_LOG_SIZE)).unwrap_or(DEFAULT_MAX_AUDIT_LOG_SIZE);
 
                 gconf.http_proxy = http_proxy;
                 gconf.http_proxy_username = http_proxy_username;
@@ -329,8 +288,8 @@ fn parse_config(ini_handle: Option<&Ini>, gconf: &mut GeneralConfig) -> HashMap<
             }
 
             if !sec.contains_key(&"scu_url".to_string()) {
-              continue;
-          }
+                continue;
+            }
 
             let mut tss_type: Option<TssType> = None;
             if let Some(t) = sec.get(&String::from("tss_type")) {
@@ -350,19 +309,11 @@ fn parse_config(ini_handle: Option<&Ini>, gconf: &mut GeneralConfig) -> HashMap<
                 None => s_name,
             };
 
-            let vtss_id = sec
-                .get(&String::from("atrust_vtss_id"))
-                .map(|s| s.to_string());
-            let atrust_api_key = sec
-                .get(&String::from("atrust_api_key"))
-                .map(|s| s.to_string());
+            let vtss_id = sec.get(&String::from("atrust_vtss_id")).map(|s| s.to_string());
+            let atrust_api_key = sec.get(&String::from("atrust_api_key")).map(|s| s.to_string());
 
-            let time_admin_id = sec
-                .get(&String::from("time_admin_id"))
-                .map(|s| s.to_string());
-            let time_admin_pwd = sec
-                .get(&String::from("time_admin_pwd"))
-                .map(|s| s.to_string());
+            let time_admin_id = sec.get(&String::from("time_admin_id")).map(|s| s.to_string());
+            let time_admin_pwd = sec.get(&String::from("time_admin_pwd")).map(|s| s.to_string());
 
             let scu_url = sec.get(&String::from("scu_url")).map(|s| s.to_string());
 

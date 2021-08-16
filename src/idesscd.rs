@@ -4,6 +4,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg(feature = "mocks")]
+use fake::{Dummy, Fake};
+#[cfg(feature = "mocks")]
+use mockall::{*, predicate::*};
+
 use crate::helpers::Result;
 
 #[derive(Serialize, Deserialize)]
@@ -81,7 +86,23 @@ pub struct FinishTransactionResponse {
     pub signature_data: TseSignatureData,
 }
 
-#[derive(Serialize, Deserialize)]
+#[cfg(feature = "mocks")]
+#[derive(Serialize, Deserialize,)]
+pub struct DummyInfo(HashMap<String, serde_json::Value>);
+
+#[cfg(feature = "mocks")]
+impl fake::Dummy<HashMap<String, serde_json::Value>> for DummyInfo {
+    fn dummy_with_rng<R: rand::Rng + ?Sized>(config: &HashMap<String, serde_json::Value>, rng: &mut R) -> Self {
+        DummyInfo(HashMap::new())
+    }
+
+    fn dummy(config: &HashMap<String, serde_json::Value>) -> Self {
+        DummyInfo(HashMap::new())
+    }
+}
+
+#[derive(Serialize, Deserialize,)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseInfo {
     pub max_number_of_clients: i64,
@@ -102,10 +123,15 @@ pub struct TseInfo {
     pub serial_number_octet: String,
     pub public_key_base64: String,
     pub certificates_base64: Vec<String>,
+    #[cfg(feature = "mocks")]
+    #[dummy(faker = "HashMap::new()")]
+    pub info: DummyInfo,
+    #[cfg(not(feature = "mocks"))]
     pub info: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 pub enum TseStates {
     Uninitialized = 0,
     Initialized = 1,
@@ -211,6 +237,7 @@ pub struct ScuDeEchoResponse {
     pub message: String,
 }
 
+#[cfg_attr(feature = "mocks", automock)]
 pub trait IDeSscd {
     fn start_transaction(&self, request: StartTransactionRequest) -> Result<StartTransactionResponse>;
     fn update_transaction(&self, request: UpdateTransactionRequest) -> Result<UpdateTransactionResponse>;
@@ -220,7 +247,7 @@ pub trait IDeSscd {
     fn register_client_id(&self, request: RegisterClientIdRequest) -> Result<RegisterClientIdResponse>;
     fn unregister_client_id(&self, request: UnregisterClientIdRequest) -> Result<UnregisterClientIdResponse>;
     fn execute_set_tse_time(&self) -> Result<()>;
-    fn execute_self_test(&self, ) -> Result<()>;
+    fn execute_self_test(&self) -> Result<()>;
     fn start_export_session(&self, request: StartExportSessionRequest) -> Result<StartExportSessionResponse>;
     fn start_export_session_by_time_stamp(&self, request: StartExportSessionByTimeStampRequest) -> Result<StartExportSessionResponse>;
     fn start_export_session_by_transaction(&self, request: StartExportSessionByTransactionRequest) -> Result<StartExportSessionResponse>;

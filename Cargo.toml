@@ -3,11 +3,16 @@ name = "middleware-wrapper-atrust"
 version = "0.1.0"
 edition = "2018"
 
+[features]
+default = []
+
+mocks = [ "mockall", "fake", "rand" ]
+
 [dependencies]
 reqwest = { version = "0.11", features = [ "blocking", "json" ] }
 thiserror = "1.0"
 log = "0.4"
-lazy_static = "1.4.0"
+once_cell = "1.8.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.66"
 uuid = { version = "0.8.2", features = [ "serde" ] }
@@ -15,14 +20,24 @@ chrono = { version = "0.4.19", features = [ "serde" ] }
 base64 = "0.13.0"
 libc = "0.2.99"
 tini = "1.2.0"
+num_enum = "0.5.3"
+flexi_logger = "0.18.0"
+mockall = { version = "0.10.2", optional = true }
+fake = { version = "2.4", optional = true, features=[ "derive" ] }
+rand = { version = "0.8.4", optional = true }
 
-[lib]
-name = "asigntse"
-crate-type = ["cdylib"]
-path = "src/lib.rs"
+[dev-dependencies]
+test-cdylib = "1.1"
+dlopen = "0.1"
+httpmock = "0.6"
 
 [build-dependencies]
 winres = "0.1"
+
+[lib]
+name = "middleware_wrapper_atrust"
+crate-type = [ "cdylib", "rlib" ]
+path = "src/lib.rs"
 
 [package.metadata.winres]
 FileDescription = "fiskaltrust a.sign TSE wrapper"
@@ -30,3 +45,8 @@ ProductName = "fiskaltrust a.sign TSE wrapper "
 OriginalFilename = "asigntse.dll"
 LegalCopyright = "Copyright © 2021 fiskaltrust consulting gmbh"
 CompanyName = "fiskaltrust consulting gmbh"
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+required-features = [ "mocks" ]
