@@ -34,7 +34,7 @@ extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *co
     let lifecycle_state: LifecycleState = match tse_info.current_state {
         TseStates::Uninitialized => LifecycleState::NotInitialized,
         TseStates::Initialized => LifecycleState::Active,
-        TseStates::Terminated => LifecycleState::Disabled, // TODO: clarify
+        TseStates::Terminated => LifecycleState::Disabled, // CLARIFY
     };
 
     unsafe { ffi::set_u32_ptr(state as *mut u32, tse_info.current_state as u32) };
@@ -48,7 +48,7 @@ extern "C" fn at_unsuspendSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_unsuspendSecureElementWithTse(tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32 // CLARIFY
 }
 
 #[no_mangle]
@@ -58,7 +58,7 @@ extern "C" fn at_suspendSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_suspendSecureElementWithTse(tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32 // CLARIFY
 }
 
 #[no_mangle]
@@ -68,7 +68,7 @@ extern "C" fn at_getCertificate(cert: *mut *mut u8, certLength: *mut u32) -> i32
 
 #[no_mangle]
 extern "C" fn at_getCertificateWithTse(cert: *mut *mut u8, certLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    todo!(); // CLARIFY: only one certificate and we get many back from the idesscd
 }
 
 #[no_mangle]
@@ -113,7 +113,13 @@ extern "C" fn at_getTransactionCounter(counter: *mut u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn at_getTransactionCounterWithTse(counter: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err| {
+        error!("{}", err);
+        ReturnCode::Unknown as i32
+    });
+
+    unsafe { ffi::set_u32_ptr(counter, tse_info.current_number_of_started_transactions as u32) }; // CLARIFY
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -155,22 +161,22 @@ extern "C" fn at_getLogTimeFormat(logTimeFormat: *mut *mut i8, logTimeFormatLeng
 
 #[no_mangle]
 extern "C" fn at_getLogTimeFormatWithTse(logTimeFormat: *mut *mut i8, logTimeFormatLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    todo!();
 }
 
 #[no_mangle]
 extern "C" fn at_getVersion(version: *mut *mut i8, versionLength: *mut u32) -> i32 {
-    unimplemented!();
+    todo!(); // CLARIFY
 }
 
 #[no_mangle]
 extern "C" fn at_getServiceVersion(version: *mut *mut i8, versionLength: *mut u32) -> i32 {
-    unimplemented!();
+    todo!(); // CLARIFY
 }
 
 #[no_mangle]
 extern "C" fn at_getVersionDetails(versionDetails: *mut *mut i8, versionDetailsLength: *mut u32) -> i32 {
-    unimplemented!();
+    todo!(); // CLARIFY
 }
 
 #[no_mangle]
@@ -191,7 +197,7 @@ extern "C" fn at_getSerialNumberWithTse(serial: *mut *mut u8, serialLength: *mut
 
 #[no_mangle]
 extern "C" fn at_preload() -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]
@@ -215,18 +221,18 @@ extern "C" fn at_verifyConfigEntry() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_verifyConfigEntryWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    todo!();
 }
 
 #[no_mangle]
 extern "C" fn at_free(ptr: *mut *mut ::std::os::raw::c_void) {
-    unimplemented!();
+    unsafe { ffi::free_ptr(ptr) };
 }
 
 #[cfg(not(feature = "stdcall"))]
 #[no_mangle]
 extern "C" fn asigntse_free(ptr: *mut *mut ::std::os::raw::c_void) {
-    unimplemented!();
+    unsafe { ffi::free_ptr(ptr) };
 }
 
 #[no_mangle]
@@ -236,7 +242,7 @@ extern "C" fn at_registerClientId(clientId: *const i8, clientIdLength: u32) -> i
 
 #[no_mangle]
 extern "C" fn at_registerClientIdWithTse(clientId: *const i8, clientIdLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    todo!();
 }
 
 #[no_mangle]
@@ -246,7 +252,7 @@ extern "C" fn at_getMaxLicencedClients(maxNumberClients: *mut u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn at_getMaxLicencedClientsWithTse(maxNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    unsafe { super::seapi::getMaxNumberOfClientsWithTse(maxNumberClients, configEntry, configEntryLength) }
 }
 
 #[no_mangle]
@@ -256,7 +262,7 @@ extern "C" fn at_getRegisteredClients(clients: *mut *mut u8, clientsLength: *mut
 
 #[no_mangle]
 extern "C" fn at_getRegisteredClientsWithTse(clients: *mut *mut u8, clientsLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    todo!();
 }
 
 #[no_mangle]
@@ -266,7 +272,7 @@ extern "C" fn at_setPace(paceUser: *const i8, paceUserLength: u32, pacePin: *con
 
 #[no_mangle]
 extern "C" fn at_setPaceWithTse(paceUser: *const i8, paceUserLength: u32, pacePin: *const i8, pacePinLength: u32, paceApiKey: *const i8, paceApiKeyLength: u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32 // CLARIFY
 }
 
 #[no_mangle]
@@ -276,7 +282,7 @@ extern "C" fn at_addUserEntropy(entropyString: *const i8, entropyStringLength: u
 
 #[no_mangle]
 extern "C" fn at_addUserEntropyWithTse(entropyString: *const i8, entropyStringLength: u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32 // CLARIFY
 }
 
 #[no_mangle]
@@ -286,12 +292,12 @@ extern "C" fn at_setPins(adminPin: *const u8, adminPinLength: u32, adminPuk: *co
 
 #[no_mangle]
 extern "C" fn at_setPinsWithTse(adminPin: *const u8, adminPinLength: u32, adminPuk: *const u8, adminPukLength: u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32 // CLARIFY
 }
 
 #[no_mangle]
 extern "C" fn at_checkCompatibility(startIndex: u32, indexCnt: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32 // CLARIFY
 }
 
 #[no_mangle]
@@ -301,7 +307,7 @@ extern "C" fn at_runSelfTests() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_runSelfTestsWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    todo!();
 }
 
 #[no_mangle]
@@ -311,7 +317,7 @@ extern "C" fn at_checkSecureState() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_checkSecureStateWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32 // CLARIFY
 }
 
 #[no_mangle]
@@ -321,15 +327,15 @@ extern "C" fn at_reloadSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_reloadSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32 // CLARIFY
 }
 
 #[no_mangle]
 extern "C" fn at_install() -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32 // CLARIFY
 }
 
 #[no_mangle]
 extern "C" fn at_uninstall() -> i32 {
-    unimplemented!();
+    ReturnCode::ExecutionOk as i32 // CLARIFY
 }

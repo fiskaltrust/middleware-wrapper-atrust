@@ -23,7 +23,7 @@ tini = "1.2.0"
 num_enum = "0.5.3"
 flexi_logger = "0.18.0"
 mockall = { version = "0.10.2", optional = true }
-fake = { version = "2.4", optional = true, features=[ "derive" ] }
+fake = { version = "2.4", optional = true, features=[ "derive", "chrono" ] }
 rand = { version = "0.8.4", optional = true }
 
 [dev-dependencies]

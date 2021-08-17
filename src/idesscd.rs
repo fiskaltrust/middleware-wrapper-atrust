@@ -10,18 +10,23 @@ use fake::{Dummy, Fake};
 use mockall::{predicate::*, *};
 
 use crate::helpers::Result;
+#[cfg(feature = "mocks")]
+use crate::helpers::fakers::*;
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartTransactionRequest {
     pub client_id: String,
     pub process_type: String,
     pub process_data_base64: String,
+    #[dummy(faker = "UuidFaker")]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseSignatureData {
     pub signature_counter: u64,
@@ -31,6 +36,7 @@ pub struct TseSignatureData {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartTransactionResponse {
     pub transaction_number: u64,
@@ -41,16 +47,19 @@ pub struct StartTransactionResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UpdateTransactionRequest {
     pub client_id: String,
     pub transaction_number: u64,
     pub process_type: String,
     pub process_data_base64: String,
+    #[dummy(faker = "UuidFaker")]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UpdateTransactionResponse {
     pub transaction_number: u64,
@@ -63,16 +72,19 @@ pub struct UpdateTransactionResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct FinishTransactionRequest {
     pub client_id: String,
     pub transaction_number: u64,
     pub process_type: String,
     pub process_data_base64: String,
+    #[dummy(faker = "UuidFaker")]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct FinishTransactionResponse {
     pub transaction_number: u64,
@@ -84,21 +96,6 @@ pub struct FinishTransactionResponse {
     pub process_type: String,
     pub process_data_base64: String,
     pub signature_data: TseSignatureData,
-}
-
-#[cfg(feature = "mocks")]
-#[derive(Serialize, Deserialize)]
-pub struct DummyInfo(HashMap<String, serde_json::Value>);
-
-#[cfg(feature = "mocks")]
-impl fake::Dummy<HashMap<String, serde_json::Value>> for DummyInfo {
-    fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &HashMap<String, serde_json::Value>, _: &mut R) -> Self {
-        DummyInfo(HashMap::new())
-    }
-
-    fn dummy(_: &HashMap<String, serde_json::Value>) -> Self {
-        DummyInfo(HashMap::new())
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -123,10 +120,7 @@ pub struct TseInfo {
     pub serial_number_octet: String,
     pub public_key_base64: String,
     pub certificates_base64: Vec<String>,
-    #[cfg(feature = "mocks")]
-    #[dummy(faker = "HashMap::new()")]
-    pub info: DummyInfo,
-    #[cfg(not(feature = "mocks"))]
+    #[dummy(faker = "InfoFaker")]
     pub info: HashMap<String, serde_json::Value>,
 }
 
@@ -139,40 +133,47 @@ pub enum TseStates {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseState {
     pub current_state: TseStates,
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct RegisterClientIdRequest {
     pub client_id: String,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct RegisterClientIdResponse {
     pub client_ids: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UnregisterClientIdRequest {
     pub client_id: String,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UnregisterClientIdResponse {
     pub client_ids: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionRequest {
     pub client_id: String,
     pub erase: bool,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionResponse {
     pub token_id: String,
@@ -180,6 +181,7 @@ pub struct StartExportSessionResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionByTimeStampRequest {
     pub client_id: String,
@@ -188,6 +190,7 @@ pub struct StartExportSessionByTimeStampRequest {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionByTransactionRequest {
     pub client_id: String,
@@ -196,12 +199,14 @@ pub struct StartExportSessionByTransactionRequest {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ExportDataRequest {
     pub token_id: String,
     pub max_chunk_size: i32,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ExportDataResponse {
     pub token_id: String,
@@ -212,6 +217,7 @@ pub struct ExportDataResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct EndExportSessionRequest {
     pub token_id: String,
@@ -219,6 +225,7 @@ pub struct EndExportSessionRequest {
     pub erase: bool,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct EndExportSessionResponse {
     pub token_id: String,
@@ -227,11 +234,13 @@ pub struct EndExportSessionResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ScuDeEchoRequest {
     pub message: String,
 }
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ScuDeEchoResponse {
     pub message: String,

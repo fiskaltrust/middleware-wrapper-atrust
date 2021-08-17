@@ -36,7 +36,7 @@ extern "C" fn cfgTseAdd(
     timeAdminPwd: *const i8,
     timeAdminPwdLength: u32,
 ) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
@@ -57,12 +57,12 @@ extern "C" fn cfgTseAddPremium(
     licenceKey: *const i8,
     licenceKeyLength: u32,
 ) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgTseRemove(tseID: *const i8, tseIDLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
@@ -126,65 +126,65 @@ extern "C" fn cfgSetLoggingStderr(enabled: bool) -> i32 {
 
 #[no_mangle]
 extern "C" fn cfgSetLoggingFile(enabled: bool) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogDir(path: *const i8, pathLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogLevel(logLevel: *const i8, logLevelLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogAppend(enabled: bool) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogColors(enabled: bool) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogDetails(enabled: bool) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogStderrColors(enabled: bool) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyUrlLength: u32, proxyUsername: *const i8, proxyUsernameLength: u32, proxyPassword: *const i8, proxyPasswordLength: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetTimeout(timeout: u64) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetRetries(retries: u64) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetUploadMessageInterval(interval: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
 
 #[no_mangle]
 extern "C" fn cfgSetMaxAuditLogSize(maximum: u32) -> i32 {
-    unimplemented!();
+    ReturnCode::NotImplemented as i32
 }
