@@ -83,7 +83,7 @@ extern "C" fn at_getPublicKeyWithTse(pubKey: *mut *mut u8, pubKeyLength: *mut u3
         ReturnCode::Unknown as i32
     });
 
-    unsafe { ffi::set_cstr(pubKey, pubKeyLength, tse_info.public_key_base64) };
+    unsafe { ffi::set_cstr_from_str(pubKey, pubKeyLength, tse_info.public_key_base64.as_str()) };
     ReturnCode::ExecutionOk as i32
 }
 

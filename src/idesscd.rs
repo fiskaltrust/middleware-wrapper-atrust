@@ -9,9 +9,29 @@ use fake::{Dummy, Fake};
 #[cfg(feature = "mocks")]
 use mockall::{predicate::*, *};
 
-use crate::helpers::Result;
 #[cfg(feature = "mocks")]
 use crate::helpers::fakers::*;
+use crate::helpers::Result;
+
+#[derive(Serialize, Deserialize)]
+pub struct Base64(String);
+
+impl Base64 {
+    pub fn from<T>(from: T) -> Self
+    where
+        T: AsRef<[u8]>,
+    {
+        Base64(base64::encode(from))
+    }
+
+    pub fn decode(&self) -> std::result::Result<Vec<u8>, base64::DecodeError> {
+        base64::decode(&self.0)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
@@ -19,7 +39,7 @@ use crate::helpers::fakers::*;
 pub struct StartTransactionRequest {
     pub client_id: String,
     pub process_type: String,
-    pub process_data_base64: String,
+    pub process_data_base64: Base64,
     #[dummy(faker = "UuidFaker")]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
@@ -31,8 +51,8 @@ pub struct StartTransactionRequest {
 pub struct TseSignatureData {
     pub signature_counter: u64,
     pub signature_algorithm: String,
-    pub signature_base64: String,
-    pub public_key_base64: String,
+    pub signature_base64: Base64,
+    pub public_key_base64: Base64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -53,7 +73,7 @@ pub struct UpdateTransactionRequest {
     pub client_id: String,
     pub transaction_number: u64,
     pub process_type: String,
-    pub process_data_base64: String,
+    pub process_data_base64: Base64,
     #[dummy(faker = "UuidFaker")]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
@@ -67,7 +87,7 @@ pub struct UpdateTransactionResponse {
     pub tse_serial_number_octet: String,
     pub client_id: String,
     pub process_type: String,
-    pub process_data_base64: String,
+    pub process_data_base64: Base64,
     pub signature_data: TseSignatureData,
 }
 
@@ -78,7 +98,7 @@ pub struct FinishTransactionRequest {
     pub client_id: String,
     pub transaction_number: u64,
     pub process_type: String,
-    pub process_data_base64: String,
+    pub process_data_base64: Base64,
     #[dummy(faker = "UuidFaker")]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
@@ -94,7 +114,7 @@ pub struct FinishTransactionResponse {
     pub tse_serial_number_octet: String,
     pub client_id: String,
     pub process_type: String,
-    pub process_data_base64: String,
+    pub process_data_base64: Base64,
     pub signature_data: TseSignatureData,
 }
 
@@ -118,8 +138,8 @@ pub struct TseInfo {
     pub signature_algorithm: String,
     pub log_time_format: String,
     pub serial_number_octet: String,
-    pub public_key_base64: String,
-    pub certificates_base64: Vec<String>,
+    pub public_key_base64: Base64,
+    pub certificates_base64: Vec<Base64>,
     #[dummy(faker = "InfoFaker")]
     pub info: HashMap<String, serde_json::Value>,
 }

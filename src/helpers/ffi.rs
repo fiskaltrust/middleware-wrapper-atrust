@@ -68,6 +68,15 @@
       }
   }
 
+  pub unsafe fn set_cstr_from_str(ptr: *mut *mut u8, cstr_len: *mut u32, val: &str) {
+    if !ptr.is_null() {
+        *ptr = libc::malloc(val.len()) as *mut u8;
+
+        std::ptr::copy_nonoverlapping(val.as_ptr(), *ptr as *mut u8, val.len());
+        set_u32_ptr(cstr_len, val.len() as u32);
+    }
+}
+
   pub unsafe fn set_u32_buf(ptr: *mut *mut u32, val: &[u32]) {
       if !ptr.is_null() {
           let val_len = val.len() * std::mem::size_of::<u32>();
