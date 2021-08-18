@@ -30,6 +30,7 @@ rand = { version = "0.8.4", optional = true }
 test-cdylib = "1.1"
 dlopen = "0.1"
 httpmock = "0.6"
+serial_test = "0.5.1"
 
 [build-dependencies]
 winres = "0.1"

@@ -84,11 +84,12 @@ impl Default for Config {
 }
 
 pub static CONFIG_FILE: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("asigntseonline.conf")));
+
 pub static GENERAL_CONFIG: Lazy<Mutex<GeneralConfig>> = Lazy::new(|| Mutex::new(GeneralConfig::default()));
 
 fn set_ini() -> Option<Ini> {
     if let Ok(cfg) = CONFIG_FILE.lock() {
-        match Ini::from_file(&cfg.to_string()) {
+    match Ini::from_file(&cfg.to_string()) {
             Ok(i) => Some(i),
             Err(_) => None,
         }
@@ -102,6 +103,7 @@ static INI: Lazy<Mutex<Option<Ini>>> = Lazy::new(|| Mutex::new(set_ini()));
 fn set_configs() -> HashMap<String, Config> {
     let ini = INI.lock().unwrap();
     let mut gconf = GENERAL_CONFIG.lock().unwrap();
+
     parse_config(ini.as_ref(), &mut *gconf)
 }
 
@@ -124,15 +126,21 @@ pub fn get_tss(name: &str) -> Option<Config> {
     })
 }
 
-pub fn read_config() -> bool {
+pub fn has_read_config() -> bool {
     !CONFIGS.lock().unwrap().is_empty()
+}
+
+pub fn read_config() -> bool {
+    *try_or_return!(|| INI.lock(), |_| false) = set_ini();
+    *try_or_return!(|| CONFIGS.lock(), |_| false) = set_configs();
+
+    true
 }
 
 pub fn set_config_file(path: &str) -> bool {
     *try_or_return!(|| CONFIG_FILE.lock(), |_| false) = path.to_string();
-    *try_or_return!(|| INI.lock(), |_| false) = set_ini();
-    *try_or_return!(|| CONFIGS.lock(), |_| false) = set_configs();
-    true
+    
+    read_config()
 }
 
 fn get_default_entry(ini_handle: Option<&Ini>) -> Option<Config> {
@@ -203,6 +211,7 @@ fn parse_config(ini_handle: Option<&Ini>, gconf: &mut GeneralConfig) -> HashMap<
             }
 
             if s_name == "config" {
+
                 let http_proxy = sec.get(&String::from("http_proxy")).map(|s| s.to_string());
                 let http_proxy_username = sec.get(&String::from("http_proxy_username")).map(|s| s.to_string());
                 let http_proxy_password = sec.get(&String::from("http_proxy_password")).map(|s| s.to_string());

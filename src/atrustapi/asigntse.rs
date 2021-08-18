@@ -7,6 +7,7 @@ use log::error;
 use crate::client::Client;
 use crate::helpers::ffi;
 use crate::idesscd::{IDeSscd, TseStates};
+use crate::logging;
 
 use super::return_codes::ReturnCode;
 
@@ -202,11 +203,22 @@ extern "C" fn at_preload() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_load() -> i32 {
-    if crate::config::read_config() {
-        ReturnCode::ExecutionOk as i32
-    } else {
-        ReturnCode::Unknown as i32
+    if !crate::config::has_read_config() {
+        return ReturnCode::ConfigFileNotFound as i32;
+        // if !crate::config::read_config() {
+        // }
     }
+
+    match logging::configure_logging() {
+        Ok(_) => {},
+        Err(logging::Error::LoggerAlreadyConfigured) => {},
+        Err(err) => {
+            error!("{}", err);
+            return ReturnCode::Unknown as i32;
+        }
+    }
+
+    ReturnCode::ExecutionOk as i32
 }
 
 #[no_mangle]

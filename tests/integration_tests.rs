@@ -1,10 +1,11 @@
+use chrono::{TimeZone, Utc};
 use fake::{Fake, Faker};
 use httpmock::prelude::*;
-use log::info;
 use middleware_wrapper_atrust::helpers::ffi;
 use middleware_wrapper_atrust::idesscd::*;
 use middleware_wrapper_atrust::return_codes::ReturnCode;
 use std::convert::TryFrom;
+use serial_test::serial;
 
 #[macro_use]
 mod helpers;
@@ -53,18 +54,24 @@ fn setup_mock_server() {
     server.mock(mock_call!(mock_idesscd, "/v1/echo", echo, Faker.fake::<ScuDeEchoRequest>()));
 }
 
-#[test]
-fn api_test() {
+fn setup_atrustapi() -> dlopen::symbor::Library {
     let dylib_path = test_cdylib::build_current_project();
     let dylib = dlopen::symbor::Library::open(&dylib_path).unwrap();
 
-    setup_mock_server();
-
-    let cfg_set_logging_stderr = unsafe { dylib.symbol::<extern "C" fn(bool) -> i32>("cfgSetLoggingStderr").unwrap() };
-    assert_eq!(0, cfg_set_logging_stderr(true));
-
     let cfg_set_config_file = unsafe { dylib.symbol::<extern "C" fn(*const i8, u32) -> i32>("cfgSetConfigFile").unwrap() };
     assert_eq!(0, cfg_set_config_file(CONFIG_FILE_TARGET.as_ptr() as *const i8, CONFIG_FILE_TARGET.len() as u32));
+    
+    let at_load = unsafe { dylib.symbol::<extern "C" fn() -> i32>("at_load").unwrap() };
+    assert_eq!(0, at_load());
+
+    dylib
+}
+
+#[test]
+#[serial]
+fn at_get_public_key_with_tse() {
+    setup_mock_server();
+    let dylib = setup_atrustapi();
 
     let at_get_public_key_with_tse = unsafe { dylib.symbol::<extern "C" fn(*mut *mut u8, *mut u32, *const i8, u32) -> i32>("at_getPublicKeyWithTse").unwrap() };
 
@@ -76,29 +83,22 @@ fn api_test() {
 
     assert_eq!(result, ReturnCode::ExecutionOk);
 
+    println!("pub_key: {}", unsafe { ffi::from_cstr(*pub_key.as_ptr() as *const i8, *pub_key_length.as_ptr()) });
+
     unsafe { ffi::free_ptr(pub_key.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
+}
+
+#[test]
+#[serial]
+fn start_transaction() {
+    setup_mock_server();
+    let dylib = setup_atrustapi();
 
     let start_transaction = unsafe {
         dylib
             .symbol::<extern "C" fn(*const i8, u32, *const u8, u32, *const i8, u32, *const u8, u32, *mut u32, *mut i64, *mut *mut u8, *mut u32, *mut u32, *mut *mut u8, *mut u32) -> i32>("startTransaction")
             .unwrap()
     };
-
-    // clientId: *const i8,
-    // clientIdLength: u32,
-    // processData: *const u8,
-    // processDataLength: u32,
-    // processType: *const i8,
-    // processTypeLength: u32,
-    // additionalData: *const u8,
-    // additionalDataLength: u32,
-    // transactionNumber: *mut u32,
-    // logTime: *mut i64,
-    // serialNumber: *mut *mut u8,
-    // serialNumberLength: *mut u32,
-    // signatureCounter: *mut u32,
-    // signatureValue: *mut *mut u8,
-    // signatureValueLength: *mut u32,
 
     let mut transaction_number = std::mem::MaybeUninit::<u32>::uninit();
     let mut log_time = std::mem::MaybeUninit::<i64>::uninit();
@@ -131,15 +131,14 @@ fn api_test() {
 
     assert_eq!(result, ReturnCode::ExecutionOk);
 
-    info!("transaction_number: {:?}", transaction_number);
-    info!("log_time: {:?}", log_time);
-    info!("serial_number: {:?}", serial_number);
-    info!("serial_number_length: {:?}", serial_number_length);
-    info!("signature_counter: {:?}", signature_counter);
-    info!("signature_value: {:?}", signature_value);
-    info!("signature_value_length: {:?}", signature_value_length);
+    println!("transaction_number: {}", unsafe { *transaction_number.as_ptr() });
+    println!("log_time: {}", Utc.timestamp(unsafe { *log_time.as_ptr() }, 0));
+    println!("serial_number: {}", unsafe { ffi::from_cstr(*serial_number.as_ptr() as *const i8, *serial_number_length.as_ptr()) });
+    println!("serial_number_length: {}", unsafe { *serial_number_length.as_ptr() });
+    println!("signature_counter: {}", unsafe { *signature_counter.as_ptr() });
+    println!("signature_value: {}", unsafe { ffi::from_cstr(*signature_value.as_ptr() as *const i8, *signature_value_length.as_ptr()) });
+    println!("signature_value_length: {}", unsafe { *signature_value_length.as_ptr() });
 
     unsafe { ffi::free_ptr(serial_number.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
     unsafe { ffi::free_ptr(signature_value.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
-    
 }
