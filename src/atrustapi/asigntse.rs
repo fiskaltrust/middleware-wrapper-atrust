@@ -65,17 +65,17 @@ extern "C" fn at_suspendSecureElementWithTse(tseId: *const i8, tseIdLength: u32)
 
 #[no_mangle]
 extern "C" fn at_getCertificate(cert: *mut *mut u8, certLength: *mut u32) -> i32 {
-    at_getCertificateWithTse(cert, certLength, b"default".as_ptr() as *const i8, "default".len() as u32)
+    unsafe { at_getCertificateWithTse(cert, certLength, b"default".as_ptr() as *const i8, "default".len() as u32) }
 }
 
 #[no_mangle]
-extern "C" fn at_getCertificateWithTse(cert: *mut *mut u8, certLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
+pub unsafe extern "C" fn at_getCertificateWithTse(cert: *mut *mut u8, certLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
     let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_cstr_array(cert, certLength, &tse_info.certificates_base64.into_iter().map(|c| String::from(c.as_str())).collect::<Vec<String>>()) };
+    ffi::set_cstr_array(cert, certLength, &tse_info.certificates_base64.into_iter().map(|c| String::from(c.as_str())).collect::<Vec<String>>());
     ReturnCode::ExecutionOk.into()
 }
 
@@ -195,17 +195,17 @@ extern "C" fn at_getVersionDetails(versionDetails: *mut *mut i8, versionDetailsL
 
 #[no_mangle]
 extern "C" fn at_getSerialNumber(serial: *mut *mut u8, serialLength: *mut u32) -> i32 {
-    at_getSerialNumberWithTse(serial, serialLength, b"default".as_ptr() as *const i8, "default".len() as u32)
+    unsafe { at_getSerialNumberWithTse(serial, serialLength, b"default".as_ptr() as *const i8, "default".len() as u32) }
 }
 
 #[no_mangle]
-extern "C" fn at_getSerialNumberWithTse(serial: *mut *mut u8, serialLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
+pub unsafe extern "C" fn at_getSerialNumberWithTse(serial: *mut *mut u8, serialLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
     let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_cstr(serial, serialLength, tse_info.serial_number_octet) };
+    ffi::set_cstr(serial, serialLength, tse_info.serial_number_octet);
     ReturnCode::ExecutionOk.into()
 }
 

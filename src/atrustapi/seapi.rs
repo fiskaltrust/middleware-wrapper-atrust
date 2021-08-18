@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
+use chrono::{TimeZone, Utc};
 use log::error;
 use num_enum::IntoPrimitive;
 
@@ -22,9 +23,9 @@ pub enum TssType {
 
 #[repr(u32)]
 pub enum UpdateVariants {
-    Update = 0,
+    Signed = 0,
     Unsigned = 1,
-    AignedAndUnsigned = 2,
+    SignedAndUnsigned = 2,
 }
 
 #[repr(i32)]
@@ -489,7 +490,63 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientId(startDate: i64, endDat
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    let client = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength)), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    let start_export_session_by_time_stamp_request = StartExportSessionByTimeStampRequest {
+        client_id: ffi::from_cstr(clientId, clientIdLength),
+        from: Utc.timestamp(startDate, 0), // CLARIFY
+        to: Utc.timestamp(endDate, 0),
+    };
+
+    let start_export_session_by_time_stamp_response = try_or_return!(|| client.start_export_session_by_time_stamp(&start_export_session_by_time_stamp_request), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    let export_data_request = ExportDataRequest {
+        token_id: start_export_session_by_time_stamp_response.token_id.clone(),
+        max_chunk_size: MAX_CHUNK_SIZE,
+    };
+
+    let mut export_data: Vec<u8> = vec![];
+
+    loop {
+        let export_data_response = try_or_return!(|| client.export_data(&export_data_request), |err: client::Error| {
+            error!("{}", err);
+            Into::<ReturnCode>::into(err).into()
+        });
+
+        export_data.extend_from_slice(export_data_response.tar_file_byte_chunk_base64.as_bytes());
+
+        if export_data_response.tar_file_end_of_file {
+            break;
+        }
+    }
+
+    let end_export_session_request = EndExportSessionRequest {
+        token_id: start_export_session_by_time_stamp_response.token_id,
+        sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
+        erase: true, // CLARIFY
+    };
+
+    let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    if !end_export_session_response.is_valid {
+        return ReturnCode::Unknown.into();
+    }
+
+    unsafe {
+        ffi::set_byte_buf(exportedData, export_data.as_slice());
+        ffi::set_u32_ptr(exportedDataLength, export_data.len() as u32);
+    }
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -499,7 +556,7 @@ extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, 
 
 #[no_mangle]
 extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    todo!() // CLARIFY
 }
 
 #[no_mangle]
@@ -509,7 +566,7 @@ extern "C" fn exportCertificates(certificates: *mut *mut u8, certificatesLength:
 
 #[no_mangle]
 extern "C" fn exportCertificatesWithTse(certificates: *mut *mut u8, certificatesLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    unsafe { crate::asigntse::at_getCertificateWithTse(certificates, certificatesLength, configEntry, configEntryLength) }
 }
 
 #[no_mangle]
@@ -539,7 +596,7 @@ extern "C" fn exportSerialNumbers(serialNumbers: *mut *mut u8, serialNumbersLeng
 
 #[no_mangle]
 extern "C" fn exportSerialNumbersWithTse(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    unsafe { crate::asigntse::at_getSerialNumberWithTse(serialNumbers, serialNumbersLength, configEntry, configEntryLength) }
 }
 
 #[no_mangle]
@@ -613,7 +670,8 @@ extern "C" fn getSupportedTransactionUpdateVariants(supportedUpdateVariants: *mu
 
 #[no_mangle]
 extern "C" fn getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants: *mut UpdateVariants, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    unsafe { ffi::set_u32_ptr(supportedUpdateVariants as *mut u32, UpdateVariants::Signed.into())}
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
