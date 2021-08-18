@@ -38,7 +38,7 @@ pub struct StartTransactionRequest {
     pub client_id: String,
     pub process_type: String,
     pub process_data_base64: Base64,
-    #[dummy(faker = "UuidFaker")]
+    #[cfg_attr(feature = "mocks", dummy(faker = "UuidFaker"))]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
@@ -72,7 +72,7 @@ pub struct UpdateTransactionRequest {
     pub transaction_number: u64,
     pub process_type: String,
     pub process_data_base64: Base64,
-    #[dummy(faker = "UuidFaker")]
+    #[cfg_attr(feature = "mocks", dummy(faker = "UuidFaker"))]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
@@ -97,7 +97,7 @@ pub struct FinishTransactionRequest {
     pub transaction_number: u64,
     pub process_type: String,
     pub process_data_base64: Base64,
-    #[dummy(faker = "UuidFaker")]
+    #[cfg_attr(feature = "mocks", dummy(faker = "UuidFaker"))]
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
@@ -138,7 +138,7 @@ pub struct TseInfo {
     pub serial_number_octet: String,
     pub public_key_base64: Base64,
     pub certificates_base64: Vec<Base64>,
-    #[dummy(faker = "InfoFaker")]
+    #[cfg_attr(feature = "mocks", dummy(faker = "InfoFaker"))]
     pub info: HashMap<String, serde_json::Value>,
 }
 
@@ -229,7 +229,7 @@ pub struct ExportDataRequest {
 pub struct ExportDataResponse {
     pub token_id: String,
     pub tar_file_byte_chunk_base64: String,
-    #[dummy(faker = "fake::faker::boolean::en::Boolean(5)")]
+    #[cfg_attr(feature = "mocks", dummy(faker = "fake::faker::boolean::en::Boolean(5)"))]
     pub tar_file_end_of_file: bool,
     pub total_tar_file_size_available: bool,
     pub total_tar_file_size: i64,
@@ -248,7 +248,7 @@ pub struct EndExportSessionRequest {
 #[serde(rename_all = "PascalCase")]
 pub struct EndExportSessionResponse {
     pub token_id: String,
-    #[dummy(faker = "fake::faker::boolean::en::Boolean(100)")]
+    #[cfg_attr(feature = "mocks", dummy(faker = "fake::faker::boolean::en::Boolean(100)"))]
     pub is_valid: bool,
     pub is_erased: bool,
 }

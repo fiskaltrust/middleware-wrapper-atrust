@@ -7,8 +7,9 @@ use once_cell::sync::Lazy;
 use serial_test::serial;
 use wiremock::{
     matchers::{method, path},
-    Match, Mock, MockServer, Request, Respond, ResponseTemplate,
+    Mock, MockServer, Request, Respond, ResponseTemplate,
 };
+
 #[macro_use]
 mod helpers;
 

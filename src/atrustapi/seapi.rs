@@ -21,6 +21,7 @@ pub enum TssType {
     CryptoVision = 1,
 }
 
+#[derive(IntoPrimitive)]
 #[repr(u32)]
 pub enum UpdateVariants {
     Signed = 0,
@@ -670,7 +671,7 @@ extern "C" fn getSupportedTransactionUpdateVariants(supportedUpdateVariants: *mu
 
 #[no_mangle]
 extern "C" fn getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants: *mut UpdateVariants, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unsafe { ffi::set_u32_ptr(supportedUpdateVariants as *mut u32, UpdateVariants::Signed.into())}
+    unsafe { ffi::set_u32_ptr(supportedUpdateVariants as *mut u32, UpdateVariants::Signed.into()) }
     ReturnCode::ExecutionOk.into()
 }
 
