@@ -1,5 +1,3 @@
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 #[allow(clippy::missing_safety_doc)]
 pub mod ffi;
 
@@ -31,33 +29,4 @@ macro_rules! try_or_return {
             Err(err) => return $return(err),
         }
     };
-}
-
-#[macro_use]
-pub mod rest {
-    macro_rules! call {
-        ($response:ident) => {{
-            if !$response.status().is_success() {
-                return Err(Error::Unsuccessful($response.status()).into());
-            }
-
-            Ok($response.json()?)
-        }};
-    }
-
-    macro_rules! post {
-        ($url:expr, $body:expr) => {{
-            let response = CLIENT.post($url).json($body).send().map_err(|source| Error::RequestFailed { source })?;
-
-            call!(response)
-        }};
-    }
-
-    macro_rules! get {
-        ($url:expr) => {{
-            let response = CLIENT.get($url).send().map_err(|source| Error::RequestFailed { source })?;
-
-            call!(response)
-        }};
-    }
 }

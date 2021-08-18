@@ -1,7 +1,7 @@
+use std::{collections::HashMap, sync::Mutex};
+
 use log::*;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
-use std::sync::Mutex;
 use tini::Ini;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -89,7 +89,7 @@ pub static GENERAL_CONFIG: Lazy<Mutex<GeneralConfig>> = Lazy::new(|| Mutex::new(
 
 fn set_ini() -> Option<Ini> {
     if let Ok(cfg) = CONFIG_FILE.lock() {
-    match Ini::from_file(&cfg.to_string()) {
+        match Ini::from_file(&cfg.to_string()) {
             Ok(i) => Some(i),
             Err(_) => None,
         }
@@ -139,7 +139,7 @@ pub fn read_config() -> bool {
 
 pub fn set_config_file(path: &str) -> bool {
     *try_or_return!(|| CONFIG_FILE.lock(), |_| false) = path.to_string();
-    
+
     read_config()
 }
 
@@ -211,7 +211,6 @@ fn parse_config(ini_handle: Option<&Ini>, gconf: &mut GeneralConfig) -> HashMap<
             }
 
             if s_name == "config" {
-
                 let http_proxy = sec.get(&String::from("http_proxy")).map(|s| s.to_string());
                 let http_proxy_username = sec.get(&String::from("http_proxy_username")).map(|s| s.to_string());
                 let http_proxy_password = sec.get(&String::from("http_proxy_password")).map(|s| s.to_string());

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use fake::{Dummy, Fake, Faker};
 
 pub struct InfoFaker;
@@ -13,7 +14,7 @@ pub struct UuidFaker;
 
 impl Dummy<UuidFaker> for uuid::Uuid {
     fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &UuidFaker, rng: &mut R) -> Self {
-      uuid::Uuid::from_u128(Faker.fake_with_rng(rng))
+        uuid::Uuid::from_u128(Faker.fake_with_rng(rng))
     }
 }
 

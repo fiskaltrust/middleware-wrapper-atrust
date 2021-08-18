@@ -1,6 +1,6 @@
-use num_enum::TryFromPrimitive;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, IntoPrimitive, Copy, Clone)]
 #[repr(i32)]
 pub enum ReturnCode {
     ExecutionOk = 0,

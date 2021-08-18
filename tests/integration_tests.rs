@@ -1,24 +1,21 @@
+use std::convert::TryFrom;
+
 use chrono::{TimeZone, Utc};
 use fake::{Fake, Faker};
-use httpmock::prelude::*;
-use middleware_wrapper_atrust::helpers::ffi;
-use middleware_wrapper_atrust::idesscd::*;
-use middleware_wrapper_atrust::return_codes::ReturnCode;
-use std::convert::TryFrom;
+use middleware_wrapper_atrust::{helpers::ffi, idesscd::*, return_codes::ReturnCode};
+use once_cell::sync::Lazy;
 use serial_test::serial;
-
+use wiremock::{
+    matchers::{method, path},
+    Match, Mock, MockServer, Request, Respond, ResponseTemplate,
+};
 #[macro_use]
 mod helpers;
 
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
 
-fn setup_mock_server() {
-    let server = MockServer::start();
-    let config = std::fs::read_to_string(CONFIG_FILE).unwrap();
-
-    std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &server.base_url())).unwrap();
-
+static MOCK_IDESSCD: Lazy<MockIDeSscd> = Lazy::new(|| {
     let mut mock_idesscd = MockIDeSscd::new();
 
     mock_idesscd.expect_get_tse_info().returning(|| Ok(Faker.fake::<TseInfo>()));
@@ -35,43 +32,104 @@ fn setup_mock_server() {
     mock_idesscd.expect_start_export_session_by_transaction().returning(|_| Ok(Faker.fake::<StartExportSessionResponse>()));
     mock_idesscd.expect_export_data().returning(|_| Ok(Faker.fake::<ExportDataResponse>()));
     mock_idesscd.expect_end_export_session().returning(|_| Ok(Faker.fake::<EndExportSessionResponse>()));
-    mock_idesscd.expect_echo().returning(|request| Ok(ScuDeEchoResponse { message: request.message }));
+    mock_idesscd.expect_echo().returning(|request| Ok(ScuDeEchoResponse { message: request.message.clone() }));
 
-    server.mock(mock_call!(mock_idesscd, "/v1/tseinfo", get_tse_info));
-    server.mock(mock_call!(mock_idesscd, "/v1/starttransaction", start_transaction, Faker.fake::<StartTransactionRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/updatetransaction", update_transaction, Faker.fake::<UpdateTransactionRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/finishtransaction", finish_transaction, Faker.fake::<FinishTransactionRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/tsestate", set_tse_state, Faker.fake::<TseState>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/registerclientid", register_client_id, Faker.fake::<RegisterClientIdRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/unregisterclientid", unregister_client_id, Faker.fake::<UnregisterClientIdRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/executesettsetime", execute_set_tse_time));
-    server.mock(mock_call!(mock_idesscd, "/v1/executeselftest", execute_self_test));
-    server.mock(mock_call!(mock_idesscd, "/v1/startexportsession", start_export_session, Faker.fake::<StartExportSessionRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/startexportsessionbytimestamp", start_export_session_by_time_stamp, Faker.fake::<StartExportSessionByTimeStampRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/startexportsessionbytransaction", start_export_session_by_transaction, Faker.fake::<StartExportSessionByTransactionRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/exportdata", export_data, Faker.fake::<ExportDataRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/endexportsession", end_export_session, Faker.fake::<EndExportSessionRequest>()));
-    server.mock(mock_call!(mock_idesscd, "/v1/echo", echo, Faker.fake::<ScuDeEchoRequest>()));
+    mock_idesscd
+});
+
+pub struct FakerResponder(Box<dyn Fn(String) -> String + Send + Sync>);
+
+impl FakerResponder {
+    fn post<REQ: Send + Sync + for<'de> serde::Deserialize<'de>, RES: Send + Sync + serde::Serialize, C: Fn(REQ) -> RES + 'static + Send + Sync>(mock: C) -> FakerResponder {
+        FakerResponder(Box::new(move |req: String| {
+            let de = serde_json::de::from_str(&req).unwrap();
+            let res = mock(de);
+            serde_json::to_string(&res).unwrap()
+        }))
+    }
+
+    fn get<RES: Send + Sync + serde::Serialize, C: Fn() -> RES + 'static + Send + Sync>(mock: C) -> FakerResponder {
+        FakerResponder(Box::new(move |_: String| {
+            let res = mock();
+            serde_json::to_string(&res).unwrap()
+        }))
+    }
 }
 
-fn setup_atrustapi() -> dlopen::symbor::Library {
+impl Respond for FakerResponder {
+    fn respond(&self, request: &Request) -> ResponseTemplate {
+        ResponseTemplate::new(200).set_body_string(self.0(String::from_utf8(request.body.clone()).unwrap()))
+    }
+}
+
+static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
+    async_std::task::block_on(async {
+        let mock_server = MockServer::start().await;
+
+        let config = std::fs::read_to_string(CONFIG_FILE).unwrap();
+
+        std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
+
+        Mock::given(method("POST")).and(path("/v1/starttransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_transaction(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/updatetransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.update_transaction(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/finishtransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.finish_transaction(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("GET")).and(path("/v1/tseinfo")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.get_tse_info().unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/tsestate")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.set_tse_state(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/registerclientid")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.register_client_id(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/unregisterclientid")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.unregister_client_id(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("GET")).and(path("/v1/executeselftest")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_self_test().unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("GET")).and(path("/v1/executesettsetime")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_set_tse_time().unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/startexportsession")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST"))
+            .and(path("/v1/startexportsessionbytimestamp"))
+            .respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session_by_time_stamp(&req).unwrap()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/v1/startexportsessionbytransaction"))
+            .respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session_by_transaction(&req).unwrap()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST")).and(path("/v1/exportdata")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.export_data(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/endexportsession")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.end_export_session(&req).unwrap())).mount(&mock_server).await;
+
+        Mock::given(method("POST")).and(path("/v1/echo")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.echo(&req).unwrap())).mount(&mock_server).await;
+
+        mock_server
+    })
+});
+
+static SETUP_STRUSTAPI: Lazy<dlopen::symbor::Library> = Lazy::new(|| {
     let dylib_path = test_cdylib::build_current_project();
     let dylib = dlopen::symbor::Library::open(&dylib_path).unwrap();
 
     let cfg_set_config_file = unsafe { dylib.symbol::<extern "C" fn(*const i8, u32) -> i32>("cfgSetConfigFile").unwrap() };
     assert_eq!(0, cfg_set_config_file(CONFIG_FILE_TARGET.as_ptr() as *const i8, CONFIG_FILE_TARGET.len() as u32));
-    
+
     let at_load = unsafe { dylib.symbol::<extern "C" fn() -> i32>("at_load").unwrap() };
     assert_eq!(0, at_load());
 
     dylib
-}
+});
 
 #[test]
 #[serial]
 fn at_get_public_key_with_tse() {
-    setup_mock_server();
-    let dylib = setup_atrustapi();
+    Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
+    let dylib = &SETUP_STRUSTAPI;
 
     let at_get_public_key_with_tse = unsafe { dylib.symbol::<extern "C" fn(*mut *mut u8, *mut u32, *const i8, u32) -> i32>("at_getPublicKeyWithTse").unwrap() };
 
@@ -81,6 +139,7 @@ fn at_get_public_key_with_tse() {
     let tse_id = "default";
     let result: ReturnCode = ReturnCode::try_from(at_get_public_key_with_tse(pub_key.as_mut_ptr(), pub_key_length.as_mut_ptr(), tse_id.as_ptr() as *const i8, tse_id.len() as u32)).unwrap();
 
+    println!("{}", result.to_string());
     assert_eq!(result, ReturnCode::ExecutionOk);
 
     println!("pub_key: {}", unsafe { ffi::from_cstr(*pub_key.as_ptr() as *const i8, *pub_key_length.as_ptr()) });
@@ -91,8 +150,8 @@ fn at_get_public_key_with_tse() {
 #[test]
 #[serial]
 fn start_transaction() {
-    setup_mock_server();
-    let dylib = setup_atrustapi();
+    Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
+    let dylib = &SETUP_STRUSTAPI;
 
     let start_transaction = unsafe {
         dylib
@@ -108,27 +167,26 @@ fn start_transaction() {
     let mut signature_value = std::mem::MaybeUninit::<*mut u8>::uninit();
     let mut signature_value_length = std::mem::MaybeUninit::<u32>::uninit();
 
+    let result: ReturnCode = ReturnCode::try_from(start_transaction(
+        "clientId".as_ptr() as *const i8,
+        "clientId".len() as u32,
+        "processData".as_bytes().as_ptr(),
+        "processData".len() as u32,
+        "processType".as_ptr() as *const i8,
+        "processType".len() as u32,
+        "additionalData".as_bytes().as_ptr(),
+        "additionalData".len() as u32,
+        transaction_number.as_mut_ptr(),
+        log_time.as_mut_ptr(),
+        serial_number.as_mut_ptr(),
+        serial_number_length.as_mut_ptr(),
+        signature_counter.as_mut_ptr(),
+        signature_value.as_mut_ptr(),
+        signature_value_length.as_mut_ptr(),
+    ))
+    .unwrap();
 
-    let result: ReturnCode = ReturnCode::try_from(
-        start_transaction(
-            "clientId".as_ptr() as *const i8,
-            "clientId".len() as u32,
-            "processData".as_bytes().as_ptr(),
-            "processData".len() as u32,
-            "processType".as_ptr() as *const i8,
-            "processType".len() as u32,
-            "additionalData".as_bytes().as_ptr(),
-            "additionalData".len() as u32,
-            transaction_number.as_mut_ptr(),
-            log_time.as_mut_ptr(),
-            serial_number.as_mut_ptr(),
-            serial_number_length.as_mut_ptr(),
-            signature_counter.as_mut_ptr(),
-            signature_value.as_mut_ptr(),
-            signature_value_length.as_mut_ptr(),
-        )
-    ).unwrap();
-
+    println!("{}", result.to_string());
     assert_eq!(result, ReturnCode::ExecutionOk);
 
     println!("transaction_number: {}", unsafe { *transaction_number.as_ptr() });
@@ -141,4 +199,39 @@ fn start_transaction() {
 
     unsafe { ffi::free_ptr(serial_number.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
     unsafe { ffi::free_ptr(signature_value.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
+}
+
+#[test]
+#[serial]
+fn export_data_filtered_by_transaction_number_interval_and_client_id() {
+    Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
+    let dylib = &SETUP_STRUSTAPI;
+
+    let export_data_filtered_by_transaction_number_interval_and_client_id = unsafe {
+        dylib
+            .symbol::<extern "C" fn(startTransactionNumber: u32, endTransactionNumber: u32, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32>("exportDataFilteredByTransactionNumberIntervalAndClientId")
+            .unwrap()
+    };
+
+    let mut exported_data = std::mem::MaybeUninit::<*mut u8>::uninit();
+    let mut exported_data_length = std::mem::MaybeUninit::<u32>::uninit();
+
+    let result: ReturnCode = ReturnCode::try_from(export_data_filtered_by_transaction_number_interval_and_client_id(
+        0,
+        1,
+        "clientId".as_bytes().as_ptr() as *const i8,
+        "clientId".len() as u32,
+        u32::MAX,
+        exported_data.as_mut_ptr(),
+        exported_data_length.as_mut_ptr(),
+    ))
+    .unwrap();
+
+    println!("{}", result.to_string());
+    assert_eq!(result, ReturnCode::ExecutionOk);
+
+    println!("exported_data: {}", base64::encode(unsafe { ffi::from_cba(*exported_data.as_ptr(), *exported_data_length.as_ptr()) }));
+    println!("exported_data_length: {}", unsafe { *exported_data_length.as_ptr() });
+
+    unsafe { ffi::free_ptr(exported_data.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
 }

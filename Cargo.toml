@@ -25,12 +25,14 @@ flexi_logger = "0.18.0"
 mockall = { version = "0.10.2", optional = true }
 fake = { version = "2.4", optional = true, features=[ "derive", "chrono" ] }
 rand = { version = "0.8.4", optional = true }
+sha256 = "1.0.2"
 
 [dev-dependencies]
 test-cdylib = "1.1"
 dlopen = "0.1"
-httpmock = "0.6"
 serial_test = "0.5.1"
+wiremock = "0.5.6"
+async-std = "1.9.0"
 
 [build-dependencies]
 winres = "0.1"

@@ -5,7 +5,14 @@
 use log::error;
 use num_enum::IntoPrimitive;
 
-use crate::{client::Client, helpers::ffi, idesscd::*, return_codes::ReturnCode};
+use crate::{
+    client::{self, Client},
+    helpers::ffi,
+    idesscd::*,
+    return_codes::ReturnCode,
+};
+
+const MAX_CHUNK_SIZE: i32 = 1000;
 
 #[repr(u32)]
 pub enum TssType {
@@ -45,7 +52,7 @@ extern "C" fn initializeDescriptionNotSet(description: *const i8, description_le
 
 #[no_mangle]
 extern "C" fn initializeDescriptionNotSetWithTse(description: *const i8, description_length: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -55,7 +62,7 @@ extern "C" fn initializeDescriptionSet() -> i32 {
 
 #[no_mangle]
 extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -65,7 +72,7 @@ extern "C" fn updateTime(newDateTime: i64) -> i32 {
 
 #[no_mangle]
 extern "C" fn updateTimeWithTse(newDateTime: i64, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::ExecutionOk as i32 // CLARIFY
+    ReturnCode::ExecutionOk.into() // CLARIFY
 }
 
 #[no_mangle]
@@ -75,7 +82,7 @@ extern "C" fn updateTimeWithTimeSync() -> i32 {
 
 #[no_mangle]
 extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::ExecutionOk as i32 // CLARIFY
+    ReturnCode::ExecutionOk.into() // CLARIFY
 }
 
 #[no_mangle]
@@ -161,9 +168,13 @@ extern "C" fn startTransactionWithTse(
         tse_serial_number_octet,
         client_id,
         signature_data,
-    } = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.start_transaction(start_transaction_request), |err| {
+    } = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.start_transaction(&start_transaction_request), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::StartTransactionFailed as i32
+        match err {
+            client::Error::Unsuccessful(_) => ReturnCode::StartTransactionFailed,
+            err => Into::<ReturnCode>::into(err),
+        }
+        .into()
     });
 
     unsafe {
@@ -173,13 +184,13 @@ extern "C" fn startTransactionWithTse(
         ffi::set_cstr(serialNumber, serialNumberLength, tse_serial_number_octet);
         let signature_value = try_or_return!(|| signature_data.signature_base64.decode(), |err| {
             error!("{}", err);
-            ReturnCode::RetrieveLogMessageFailed as i32
+            ReturnCode::RetrieveLogMessageFailed.into()
         });
         ffi::set_byte_buf(signatureValue, signature_value.as_slice());
         ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
     }
 
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -238,9 +249,13 @@ extern "C" fn updateTransactionWithTse(
         transaction_number: transactionNumber as u64,
     };
 
-    let update_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.update_transaction(update_transaction_request), |err| {
+    let update_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.update_transaction(&update_transaction_request), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::UpdateTransactionFailed as i32
+        match err {
+            client::Error::Unsuccessful(_) => ReturnCode::UpdateTransactionFailed,
+            err => Into::<ReturnCode>::into(err),
+        }
+        .into()
     });
 
     unsafe {
@@ -248,12 +263,12 @@ extern "C" fn updateTransactionWithTse(
         ffi::set_u32_ptr(signatureCounter, update_transaction_response.signature_data.signature_counter as u32);
         let signature_value = try_or_return!(|| update_transaction_response.signature_data.signature_base64.decode(), |err| {
             error!("{}", err);
-            ReturnCode::RetrieveLogMessageFailed as i32
+            ReturnCode::RetrieveLogMessageFailed.into()
         });
         ffi::set_byte_buf(signatureValue, signature_value.as_slice());
         ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
     }
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -318,9 +333,13 @@ extern "C" fn finishTransactionWithTse(
         transaction_number: transactionNumber as u64,
     };
 
-    let finish_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.finish_transaction(finish_transaction_request), |err| {
+    let finish_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.finish_transaction(&finish_transaction_request), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::FinishTransactionFailed as i32
+        match err {
+            client::Error::Unsuccessful(_) => ReturnCode::FinishTransactionFailed,
+            err => Into::<ReturnCode>::into(err),
+        }
+        .into()
     });
 
     unsafe {
@@ -328,13 +347,13 @@ extern "C" fn finishTransactionWithTse(
         ffi::set_u32_ptr(signatureCounter, finish_transaction_response.signature_data.signature_counter as u32);
         let signature_value = try_or_return!(|| finish_transaction_response.signature_data.signature_base64.decode(), |err| {
             error!("{}", err);
-            ReturnCode::RetrieveLogMessageFailed as i32
+            ReturnCode::RetrieveLogMessageFailed.into()
         });
         ffi::set_byte_buf(signatureValue, signature_value.as_slice());
         ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
     }
 
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -344,7 +363,7 @@ extern "C" fn exportDataFilteredByTransactionNumberAndClientId(transactionNumber
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    todo!();
 }
 
 #[no_mangle]
@@ -394,7 +413,63 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
     configEntry: *const i8,
     configEntryLength: u32,
 ) -> i32 {
-    todo!()
+    let client = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength)), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    let start_export_session_by_transaction_request = StartExportSessionByTransactionRequest {
+        client_id: ffi::from_cstr(clientId, clientIdLength),
+        from: startTransactionNumber as u64,
+        to: endTransactionNumber as u64,
+    };
+
+    let start_export_session_by_transaction_response = try_or_return!(|| client.start_export_session_by_transaction(&start_export_session_by_transaction_request), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    let export_data_request = ExportDataRequest {
+        token_id: start_export_session_by_transaction_response.token_id.clone(),
+        max_chunk_size: MAX_CHUNK_SIZE,
+    };
+
+    let mut export_data: Vec<u8> = vec![];
+
+    loop {
+        let export_data_response = try_or_return!(|| client.export_data(&export_data_request), |err: client::Error| {
+            error!("{}", err);
+            Into::<ReturnCode>::into(err).into()
+        });
+
+        export_data.extend_from_slice(export_data_response.tar_file_byte_chunk_base64.as_bytes());
+
+        if export_data_response.tar_file_end_of_file {
+            break;
+        }
+    }
+
+    let end_export_session_request = EndExportSessionRequest {
+        token_id: start_export_session_by_transaction_response.token_id,
+        sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
+        erase: true, // CLARIFY
+    };
+
+    let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    if !end_export_session_response.is_valid {
+        return ReturnCode::Unknown.into();
+    }
+
+    unsafe {
+        ffi::set_byte_buf(exportedData, export_data.as_slice());
+        ffi::set_u32_ptr(exportedDataLength, export_data.len() as u32);
+    }
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -444,7 +519,7 @@ extern "C" fn restoreFromBackup(restoreData: *mut u8, restoreDataLength: u32) ->
 
 #[no_mangle]
 extern "C" fn restoreFromBackupWithTse(restoreData: *mut u8, restoreDataLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -474,13 +549,13 @@ extern "C" fn getMaxNumberOfClients(maxNumberClients: *mut u32) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn getMaxNumberOfClientsWithTse(maxNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err| {
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::Unknown as i32
+        Into::<ReturnCode>::into(err).into()
     });
 
     ffi::set_u32_ptr(maxNumberClients, tse_info.max_number_of_clients as u32);
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -490,13 +565,13 @@ extern "C" fn getCurrentNumberOfClients(currentNumberClients: *mut u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn getCurrentNumberOfClientsWithTse(currentNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err| {
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::Unknown as i32
+        Into::<ReturnCode>::into(err).into()
     });
 
     unsafe { ffi::set_u32_ptr(currentNumberClients, tse_info.current_number_of_clients as u32) };
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -506,13 +581,13 @@ extern "C" fn getMaxNumberOfTransactions(maxNumberTransactions: *mut u32) -> i32
 
 #[no_mangle]
 extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err| {
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::Unknown as i32
+        Into::<ReturnCode>::into(err).into()
     });
 
     unsafe { ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32) }; // CLARIFY
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -522,13 +597,13 @@ extern "C" fn getCurrentNumberOfTransactions(currentNumberTransactions: *mut u32
 
 #[no_mangle]
 extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err| {
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
-        ReturnCode::Unknown as i32
+        Into::<ReturnCode>::into(err).into()
     });
 
     unsafe { ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32) }; // CLARIFY
-    ReturnCode::ExecutionOk as i32
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -548,7 +623,7 @@ extern "C" fn deleteStoredData() -> i32 {
 
 #[no_mangle]
 extern "C" fn deleteStoredDataWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -558,7 +633,7 @@ extern "C" fn authenticateUser(userId: *const i8, userIdLength: u32, pin: *const
 
 #[no_mangle]
 extern "C" fn authenticateUserWithTse(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -568,7 +643,7 @@ extern "C" fn logOut(userId: *const i8, userIdLength: u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn logOutWithTse(userId: *const i8, userIdLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -578,5 +653,5 @@ extern "C" fn unblockUser(userId: *const i8, userIdLength: u32, puk: *const i8, 
 
 #[no_mangle]
 extern "C" fn unblockUserWithTse(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented as i32
+    ReturnCode::NotImplemented.into()
 }

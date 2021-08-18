@@ -1,17 +1,15 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
 #[cfg(feature = "mocks")]
 use fake::{Dummy, Fake};
 #[cfg(feature = "mocks")]
 use mockall::{predicate::*, *};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[cfg(feature = "mocks")]
 use crate::helpers::fakers::*;
-use crate::helpers::Result;
 
 #[derive(Serialize, Deserialize)]
 pub struct Base64(String);
@@ -24,7 +22,7 @@ impl Base64 {
         Base64(base64::encode(from))
     }
 
-    pub fn decode(&self) -> std::result::Result<Vec<u8>, base64::DecodeError> {
+    pub fn decode(&self) -> Result<Vec<u8>, base64::DecodeError> {
         base64::decode(&self.0)
     }
 
@@ -231,6 +229,7 @@ pub struct ExportDataRequest {
 pub struct ExportDataResponse {
     pub token_id: String,
     pub tar_file_byte_chunk_base64: String,
+    #[dummy(faker = "fake::faker::boolean::en::Boolean(5)")]
     pub tar_file_end_of_file: bool,
     pub total_tar_file_size_available: bool,
     pub total_tar_file_size: i64,
@@ -249,6 +248,7 @@ pub struct EndExportSessionRequest {
 #[serde(rename_all = "PascalCase")]
 pub struct EndExportSessionResponse {
     pub token_id: String,
+    #[dummy(faker = "fake::faker::boolean::en::Boolean(100)")]
     pub is_valid: bool,
     pub is_erased: bool,
 }
@@ -266,21 +266,27 @@ pub struct ScuDeEchoResponse {
     pub message: String,
 }
 
-#[cfg_attr(feature = "mocks", automock)]
+#[cfg(feature = "mocks")]
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
+
+#[cfg_attr(feature = "mocks", automock(type Error = Error;))]
 pub trait IDeSscd {
-    fn start_transaction(&self, request: StartTransactionRequest) -> Result<StartTransactionResponse>;
-    fn update_transaction(&self, request: UpdateTransactionRequest) -> Result<UpdateTransactionResponse>;
-    fn finish_transaction(&self, request: FinishTransactionRequest) -> Result<FinishTransactionResponse>;
-    fn get_tse_info(&self) -> Result<TseInfo>;
-    fn set_tse_state(&self, state: TseState) -> Result<TseState>;
-    fn register_client_id(&self, request: RegisterClientIdRequest) -> Result<RegisterClientIdResponse>;
-    fn unregister_client_id(&self, request: UnregisterClientIdRequest) -> Result<UnregisterClientIdResponse>;
-    fn execute_set_tse_time(&self) -> Result<()>;
-    fn execute_self_test(&self) -> Result<()>;
-    fn start_export_session(&self, request: StartExportSessionRequest) -> Result<StartExportSessionResponse>;
-    fn start_export_session_by_time_stamp(&self, request: StartExportSessionByTimeStampRequest) -> Result<StartExportSessionResponse>;
-    fn start_export_session_by_transaction(&self, request: StartExportSessionByTransactionRequest) -> Result<StartExportSessionResponse>;
-    fn export_data(&self, request: ExportDataRequest) -> Result<ExportDataResponse>;
-    fn end_export_session(&self, request: EndExportSessionRequest) -> Result<EndExportSessionResponse>;
-    fn echo(&self, request: ScuDeEchoRequest) -> Result<ScuDeEchoResponse>;
+    type Error: std::error::Error;
+
+    fn start_transaction(&self, request: &StartTransactionRequest) -> Result<StartTransactionResponse, Self::Error>;
+    fn update_transaction(&self, request: &UpdateTransactionRequest) -> Result<UpdateTransactionResponse, Self::Error>;
+    fn finish_transaction(&self, request: &FinishTransactionRequest) -> Result<FinishTransactionResponse, Self::Error>;
+    fn get_tse_info(&self) -> Result<TseInfo, Self::Error>;
+    fn set_tse_state(&self, state: &TseState) -> Result<TseState, Self::Error>;
+    fn register_client_id(&self, request: &RegisterClientIdRequest) -> Result<RegisterClientIdResponse, Self::Error>;
+    fn unregister_client_id(&self, request: &UnregisterClientIdRequest) -> Result<UnregisterClientIdResponse, Self::Error>;
+    fn execute_set_tse_time(&self) -> Result<(), Self::Error>;
+    fn execute_self_test(&self) -> Result<(), Self::Error>;
+    fn start_export_session(&self, request: &StartExportSessionRequest) -> Result<StartExportSessionResponse, Self::Error>;
+    fn start_export_session_by_time_stamp(&self, request: &StartExportSessionByTimeStampRequest) -> Result<StartExportSessionResponse, Self::Error>;
+    fn start_export_session_by_transaction(&self, request: &StartExportSessionByTransactionRequest) -> Result<StartExportSessionResponse, Self::Error>;
+    fn export_data(&self, request: &ExportDataRequest) -> Result<ExportDataResponse, Self::Error>;
+    fn end_export_session(&self, request: &EndExportSessionRequest) -> Result<EndExportSessionResponse, Self::Error>;
+    fn echo(&self, request: &ScuDeEchoRequest) -> Result<ScuDeEchoResponse, Self::Error>;
 }
