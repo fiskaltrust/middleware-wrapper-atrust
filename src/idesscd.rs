@@ -58,7 +58,7 @@ pub struct TseSignatureData {
 #[serde(rename_all = "PascalCase")]
 pub struct StartTransactionResponse {
     pub transaction_number: u64,
-    pub time_stamp: DateTime<Utc>, // CLARIFY: how is the datetime serialized by the fiskaltrust.Middleware. ISO time will work. For net-ticks we will probably have to implement our own serializer and deserializer https://serde.rs/custom-serialization.html.
+    pub time_stamp: DateTime<Utc>, // CLARIFY: how is the datetime serialized by the fiskaltrust.Middleware. ISO time will work. For net-ticks we will probably have to implement our own serializer and deserializer (https://serde.rs/custom-serialization.html and https://serde.rs/remote-derive.html).
     pub tse_serial_number_octet: String,
     pub client_id: String,
     pub signature_data: TseSignatureData,
