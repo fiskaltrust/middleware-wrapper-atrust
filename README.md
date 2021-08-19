@@ -16,7 +16,7 @@ cargo build
 
 add the `--release` flag for relase builds.
 
-dll is in `./target/(debug|release)/middleware_wrapper_atrust.dll
+dll is in `./target/(debug|release)/middleware_wrapper_atrust.dll`.
 
 ## tests
 
