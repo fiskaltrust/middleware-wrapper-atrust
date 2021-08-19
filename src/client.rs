@@ -1,10 +1,14 @@
+
+use std::sync::Arc;
+
 use log::{error, warn};
 use once_cell::sync::Lazy;
 use thiserror::Error;
+use arc_swap::ArcSwap;
 
 use crate::{config, idesscd::*, return_codes::ReturnCode};
 
-static CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(|| {
+fn set_client() -> reqwest::blocking::Client {
     #[derive(Debug, thiserror::Error)]
     enum Error {
         #[error("Unknown proxy scheme configured: {0}")]
@@ -37,7 +41,13 @@ static CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(|| {
             reqwest::blocking::Client::new()
         }
     }
-});
+}
+
+static CLIENT: Lazy<ArcSwap<reqwest::blocking::Client>> = Lazy::new(|| ArcSwap::new(Arc::new(set_client())));
+
+pub fn reset_client() {
+    CLIENT.store(Arc::new(set_client()));
+}
 
 const URL_VERSION: &str = "v1";
 macro_rules! url_version {
@@ -83,7 +93,7 @@ macro_rules! process_response {
 
 macro_rules! post {
     ($url:expr, $body:expr) => {{
-        let response = CLIENT.post($url).json($body).send().map_err(|source| Error::RequestFailed { source })?;
+        let response = CLIENT.load().post($url).json($body).send().map_err(|source| Error::RequestFailed { source })?;
 
         process_response!(response)
     }};
@@ -91,7 +101,7 @@ macro_rules! post {
 
 macro_rules! get {
     ($url:expr) => {{
-        let response = CLIENT.get($url).send().map_err(|source| Error::RequestFailed { source })?;
+        let response = CLIENT.load().get($url).send().map_err(|source| Error::RequestFailed { source })?;
 
         process_response!(response)
     }};

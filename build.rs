@@ -1,5 +1,3 @@
-// build.rs
-
 use std::env;
 
 fn main() -> std::io::Result<()> {
@@ -18,6 +16,7 @@ fn main() -> std::io::Result<()> {
 
         let mut res = winres::WindowsResource::new();
         res.set("FileDescription", &desc);
+        res.set("FileVersion", env!("CARGO_PKG_VERSION"));
 
         res.compile().unwrap();
     }

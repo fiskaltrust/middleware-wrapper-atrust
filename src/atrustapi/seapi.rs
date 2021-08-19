@@ -74,7 +74,7 @@ extern "C" fn updateTime(newDateTime: i64) -> i32 {
 
 #[no_mangle]
 extern "C" fn updateTimeWithTse(newDateTime: i64, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -84,7 +84,12 @@ extern "C" fn updateTimeWithTimeSync() -> i32 {
 
 #[no_mangle]
 extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.execute_set_tse_time(), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -94,7 +99,16 @@ extern "C" fn disableSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn disableSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!(); // CLARIFY
+    let tse_state = TseState {
+        current_state: TseStates::Terminated
+    };
+
+    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -365,7 +379,8 @@ extern "C" fn exportDataFilteredByTransactionNumberAndClientId(transactionNumber
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!();
+    exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(transactionNumber, 0, clientId, clientIdLength, u32::MAX, exportedData, exportedDataLength, configEntry, configEntryLength)
+    // CLARIFY: Does setting the `to` parameter to 0 work in the fiskantrust.Middleware?
 }
 
 #[no_mangle]
@@ -375,7 +390,8 @@ extern "C" fn exportDataFilteredByTransactionNumber(transactionNumber: u32, expo
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberWithTse(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    exportDataFilteredByTransactionNumberIntervalWithTse(transactionNumber, 0, u32::MAX, exportedData, exportedDataLength, configEntry, configEntryLength)
+    // CLARIFY: Does setting the `to` parameter to 0 work in the fiskantrust.Middleware?
 }
 
 #[no_mangle]
@@ -385,7 +401,7 @@ extern "C" fn exportDataFilteredByTransactionNumberInterval(startTransactionNumb
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberIntervalWithTse(startTransactionNumber: u32, endTransactionNumber: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(startTransactionNumber, endTransactionNumber, "".as_ptr() as *const i8, 0, maximumNumberRecords, exportedData, exportedDataLength, configEntry, configEntryLength)
 }
 
 #[no_mangle]
@@ -454,7 +470,7 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
     let end_export_session_request = EndExportSessionRequest {
         token_id: start_export_session_by_transaction_response.token_id,
         sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
-        erase: true, // CLARIFY
+        erase: true, // CLARIFY: Should we always delete the exports?
     };
 
     let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
@@ -481,7 +497,7 @@ extern "C" fn exportDataFilteredByPeriodOfTime(startDate: i64, endDate: i64, max
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByPeriodOfTimeWithTse(startDate: i64, endDate: i64, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate, endDate, "".as_ptr() as *const i8, 0, maximumNumberRecords, exportedData, exportedDataLength, configEntry, configEntryLength)
 }
 
 #[no_mangle]
@@ -498,7 +514,7 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64,
 
     let start_export_session_by_time_stamp_request = StartExportSessionByTimeStampRequest {
         client_id: ffi::from_cstr(clientId, clientIdLength),
-        from: Utc.timestamp(startDate, 0), // CLARIFY
+        from: Utc.timestamp(startDate, 0),
         to: Utc.timestamp(endDate, 0),
     };
 
@@ -530,7 +546,7 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64,
     let end_export_session_request = EndExportSessionRequest {
         token_id: start_export_session_by_time_stamp_response.token_id,
         sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
-        erase: true, // CLARIFY
+        erase: true, // CLARIFY: Should we always delete the exports?
     };
 
     let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
@@ -557,7 +573,8 @@ extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, 
 
 #[no_mangle]
 extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!() // CLARIFY
+    exportDataFilteredByTransactionNumberIntervalWithTse(0, 0, maximumNumberRecords, exportedData, exportedDataLength, configEntry, configEntryLength)
+    // CLARIFY: Does setting the `ftom` and `to` parameter to 0 work in the fiskantrust.Middleware?
 }
 
 #[no_mangle]
@@ -587,7 +604,7 @@ extern "C" fn readLogMessage(logMessage: *mut *mut u8, logMessageLength: *mut u3
 
 #[no_mangle]
 extern "C" fn readLogMessageWithTse(logMessage: *mut *mut u8, logMessageLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    todo!()
+    ReturnCode::NotImplemented.into() // CLARIFY: Can we easily read only the last log message from the fiskaltrust.Middleware?
 }
 
 #[no_mangle]
@@ -644,7 +661,7 @@ extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32,
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32) }; // CLARIFY
+    unsafe { ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32) }; // CLARIFY: Is this the correct value?
     ReturnCode::ExecutionOk.into()
 }
 
@@ -660,7 +677,7 @@ extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32) }; // CLARIFY
+    unsafe { ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32) }; // CLARIFY: is this the correct value?
     ReturnCode::ExecutionOk.into()
 }
 
@@ -671,7 +688,7 @@ extern "C" fn getSupportedTransactionUpdateVariants(supportedUpdateVariants: *mu
 
 #[no_mangle]
 extern "C" fn getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants: *mut UpdateVariants, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unsafe { ffi::set_u32_ptr(supportedUpdateVariants as *mut u32, UpdateVariants::Signed.into()) }
+    unsafe { ffi::set_u32_ptr(supportedUpdateVariants as *mut u32, UpdateVariants::SignedAndUnsigned.into()) }
     ReturnCode::ExecutionOk.into()
 }
 

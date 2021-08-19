@@ -1,9 +1,7 @@
-use std::sync::Mutex;
-
 use flexi_logger::{colored_default_format, colored_detailed_format, default_format, detailed_format, FileSpec, LogSpecification, Logger};
-use once_cell::sync::Lazy;
+use once_cell::sync::OnceCell;
 
-static LOGGER: Lazy<Mutex<Option<flexi_logger::LoggerHandle>>> = Lazy::new(|| Mutex::from(None));
+static LOGGER: OnceCell<flexi_logger::LoggerHandle> = OnceCell::new();
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -21,14 +19,14 @@ pub enum Error {
 
 pub fn configure_logging() -> Result<(), Error> {
     let general_config = crate::config::GENERAL_CONFIG.lock().map_err(|_| Error::LockingConfig)?;
-    let mut logger = LOGGER.lock().map_err(|_| Error::LockingLogger)?;
 
-    if !general_config.logging_enabled {
-        *logger = None;
+    if !general_config.logging_enabled && LOGGER.get().is_some() {
+        LOGGER.get().unwrap().shutdown();
     } else {
-        if logger.is_some() {
+        if LOGGER.get().is_some() {
             return Err(Error::LoggerAlreadyConfigured);
         }
+
         let log_spec = LogSpecification::parse(&general_config.log_level).map_err(Error::ParsingLogLevel)?;
 
         let mut logger_builder = Logger::with(log_spec).o_append(general_config.log_append);
@@ -61,7 +59,7 @@ pub fn configure_logging() -> Result<(), Error> {
             logger_builder = logger_builder.format_for_stderr(colored_default_format);
         }
 
-        *logger = Some(logger_builder.start()?)
+        LOGGER.set(logger_builder.start()?).map_err(|_| Error::LoggerAlreadyConfigured)?;
     }
 
     Ok(())

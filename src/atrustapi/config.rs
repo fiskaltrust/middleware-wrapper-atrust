@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
-use crate::{helpers::ffi, logging, return_codes::ReturnCode};
+use crate::{config, helpers::ffi, logging, return_codes::ReturnCode};
 
 #[no_mangle]
 extern "C" fn cfgSetConfigFile(path: *const i8, pathLength: u32) -> i32 {
@@ -114,12 +114,22 @@ extern "C" fn cfgSetLogStderrColors(enabled: bool) -> i32 {
 
 #[no_mangle]
 extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into()
+    let mut general_config = ok_or_return!(config::GENERAL_CONFIG.lock(), |err| ReturnCode::Unknown.into());
+
+    general_config.http_proxy = Some(ffi::from_cstr(proxyUrl, proxyUrlLength));
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyUrlLength: u32, proxyUsername: *const i8, proxyUsernameLength: u32, proxyPassword: *const i8, proxyPasswordLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into()
+    let mut general_config = ok_or_return!(config::GENERAL_CONFIG.lock(), |err| ReturnCode::Unknown.into());
+
+    general_config.http_proxy = Some(ffi::from_cstr(proxyUrl, proxyUrlLength));
+    general_config.http_proxy_username = Some(ffi::from_cstr(proxyUsername, proxyUsernameLength));
+    general_config.http_proxy_password = Some(ffi::from_cstr(proxyPassword, proxyPasswordLength));
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]

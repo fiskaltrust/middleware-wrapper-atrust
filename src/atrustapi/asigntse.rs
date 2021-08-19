@@ -36,7 +36,7 @@ extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *co
     let lifecycle_state: LifecycleState = match tse_info.current_state {
         TseStates::Uninitialized => LifecycleState::NotInitialized,
         TseStates::Initialized => LifecycleState::Active,
-        TseStates::Terminated => LifecycleState::Disabled, // CLARIFY
+        TseStates::Terminated => LifecycleState::Disabled
     };
 
     unsafe { ffi::set_u32_ptr(state as *mut u32, tse_info.current_state as u32) };
@@ -50,7 +50,7 @@ extern "C" fn at_unsuspendSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_unsuspendSecureElementWithTse(tseId: *const i8, tseIdLength: u32) -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    ReturnCode::ExecutionOk.into() // CLARIFY: Can we suspend the TSE? (https://github.com/A-Trust/KassenSichV/tree/main/Online#at_suspendsecureelement)
 }
 
 #[no_mangle]
@@ -60,7 +60,7 @@ extern "C" fn at_suspendSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_suspendSecureElementWithTse(tseId: *const i8, tseIdLength: u32) -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    ReturnCode::ExecutionOk.into() // CLARIFY: see at_unsuspendSecureElementWithTse
 }
 
 #[no_mangle]
@@ -121,13 +121,7 @@ extern "C" fn at_getTransactionCounter(counter: *mut u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn at_getTransactionCounterWithTse(counter: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
-        error!("{}", err);
-        Into::<ReturnCode>::into(err).into()
-    });
-
-    unsafe { ffi::set_u32_ptr(counter, tse_info.current_number_of_started_transactions as u32) }; // CLARIFY
-    ReturnCode::ExecutionOk.into()
+    ReturnCode::NotImplemented.into() // CLARIFY: can we get this counter?
 }
 
 #[no_mangle]
@@ -180,17 +174,19 @@ extern "C" fn at_getLogTimeFormatWithTse(logTimeFormat: *mut *mut i8, logTimeFor
 
 #[no_mangle]
 extern "C" fn at_getVersion(version: *mut *mut i8, versionLength: *mut u32) -> i32 {
-    ReturnCode::Unknown.into() // CLARIFY
+    unsafe { ffi::set_cstr(version as *mut *mut u8, versionLength, env!("CARGO_PKG_VERSION").to_string()) };
+
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
 extern "C" fn at_getServiceVersion(version: *mut *mut i8, versionLength: *mut u32) -> i32 {
-    ReturnCode::Unknown.into() // CLARIFY
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn at_getVersionDetails(versionDetails: *mut *mut i8, versionDetailsLength: *mut u32) -> i32 {
-    ReturnCode::Unknown.into() // CLARIFY
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -316,7 +312,7 @@ extern "C" fn at_setPace(paceUser: *const i8, paceUserLength: u32, pacePin: *con
 
 #[no_mangle]
 extern "C" fn at_setPaceWithTse(paceUser: *const i8, paceUserLength: u32, pacePin: *const i8, pacePinLength: u32, paceApiKey: *const i8, paceApiKeyLength: u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into() // CLARIFY
+    ReturnCode::NotImplemented.into() // CLARIFY: This method is undocumented. No idea what it should do. We can probably skip this function.
 }
 
 #[no_mangle]
@@ -326,7 +322,7 @@ extern "C" fn at_addUserEntropy(entropyString: *const i8, entropyStringLength: u
 
 #[no_mangle]
 extern "C" fn at_addUserEntropyWithTse(entropyString: *const i8, entropyStringLength: u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into() // CLARIFY
+    ReturnCode::NotImplemented.into() // CLARIFY: This method is undocumented. No idea what it should do. We can probably skip this function.
 }
 
 #[no_mangle]
@@ -336,12 +332,12 @@ extern "C" fn at_setPins(adminPin: *const u8, adminPinLength: u32, adminPuk: *co
 
 #[no_mangle]
 extern "C" fn at_setPinsWithTse(adminPin: *const u8, adminPinLength: u32, adminPuk: *const u8, adminPukLength: u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into() // CLARIFY
+    ReturnCode::NotImplemented.into() // CLARIFY: If the fiskaltrust.Middleware handles the pins we can probably skip this function.
 }
 
 #[no_mangle]
 extern "C" fn at_checkCompatibility(startIndex: u32, indexCnt: u32) -> i32 {
-    ReturnCode::NotImplemented.into() // CLARIFY
+    ReturnCode::NotImplemented.into() // CLARIFY: This method is undocumented. No idea what it should do. We can probably skip this function.
 }
 
 #[no_mangle]
@@ -366,7 +362,7 @@ extern "C" fn at_checkSecureState() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_checkSecureStateWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into() // CLARIFY
+    ReturnCode::NotImplemented.into() // CLARIFY: This method is undocumented. No idea what it should do. We can probably skip this function.
 }
 
 #[no_mangle]
@@ -376,15 +372,15 @@ extern "C" fn at_reloadSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn at_reloadSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    ReturnCode::NotImplemented.into() // CLARIFY: This method is undocumented. No idea what it should do. We can probably skip this function.
 }
 
 #[no_mangle]
 extern "C" fn at_install() -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
 extern "C" fn at_uninstall() -> i32 {
-    ReturnCode::ExecutionOk.into() // CLARIFY
+    ReturnCode::ExecutionOk.into()
 }

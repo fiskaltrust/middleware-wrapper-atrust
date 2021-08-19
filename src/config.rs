@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
+use arc_swap::{ArcSwap, ArcSwapOption};
 use log::*;
 use once_cell::sync::Lazy;
 use tini::Ini;
@@ -83,28 +84,20 @@ impl Default for Config {
     }
 }
 
-pub static CONFIG_FILE: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("asigntseonline.conf")));
+pub static CONFIG_FILE: Lazy<ArcSwap<String>> = Lazy::new(|| ArcSwap::from_pointee(String::from("asigntseonline.conf")));
 
 pub static GENERAL_CONFIG: Lazy<Mutex<GeneralConfig>> = Lazy::new(|| Mutex::new(GeneralConfig::default()));
 
 fn set_ini() -> Option<Ini> {
-    if let Ok(cfg) = CONFIG_FILE.lock() {
-        match Ini::from_file(&cfg.to_string()) {
-            Ok(i) => Some(i),
-            Err(_) => None,
-        }
-    } else {
-        None
-    }
+    Ini::from_file(&**CONFIG_FILE.load()).ok()
 }
 
-static INI: Lazy<Mutex<Option<Ini>>> = Lazy::new(|| Mutex::new(set_ini()));
+static INI: Lazy<ArcSwapOption<Ini>> = Lazy::new(|| ArcSwapOption::from(set_ini().map(Arc::new)));
 
 fn set_configs() -> HashMap<String, Config> {
-    let ini = INI.lock().unwrap();
     let mut gconf = GENERAL_CONFIG.lock().unwrap();
 
-    parse_config(ini.as_ref(), &mut *gconf)
+    parse_config(&mut *gconf)
 }
 
 pub static CONFIGS: Lazy<Mutex<HashMap<String, Config>>> = Lazy::new(|| Mutex::new(set_configs()));
@@ -131,20 +124,20 @@ pub fn has_read_config() -> bool {
 }
 
 pub fn read_config() -> bool {
-    *try_or_return!(|| INI.lock(), |_| false) = set_ini();
+    INI.store(set_ini().map(Arc::new));
     *try_or_return!(|| CONFIGS.lock(), |_| false) = set_configs();
 
     true
 }
 
 pub fn set_config_file(path: &str) -> bool {
-    *try_or_return!(|| CONFIG_FILE.lock(), |_| false) = path.to_string();
+    CONFIG_FILE.store(Arc::new(path.to_string()));
 
     read_config()
 }
 
-fn get_default_entry(ini_handle: Option<&Ini>) -> Option<Config> {
-    let ini = some_or_return!(ini_handle.iter().next(), None);
+fn get_default_entry() -> Option<Config> {
+    let ini = INI.load_full()?;
 
     if ini.iter().count() == 0 {
         return None;
@@ -195,14 +188,14 @@ fn get_default_entry(ini_handle: Option<&Ini>) -> Option<Config> {
     })
 }
 
-fn parse_config(ini_handle: Option<&Ini>, gconf: &mut GeneralConfig) -> HashMap<String, Config> {
+fn parse_config(gconf: &mut GeneralConfig) -> HashMap<String, Config> {
     let mut hm: HashMap<String, Config> = HashMap::new();
 
-    if let Some(default_cfg) = get_default_entry(ini_handle) {
+    if let Some(default_cfg) = get_default_entry() {
         hm.insert("default".to_string(), default_cfg);
     }
 
-    if let Some(ini) = ini_handle.iter().next() {
+    if let Some(ini) = INI.load_full() {
         for (s_name, section) in ini.iter() {
             let sec: HashMap<&String, &String> = section.collect();
 
