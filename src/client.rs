@@ -43,6 +43,7 @@ fn set_client() -> reqwest::blocking::Client {
     }
 }
 
+// CLARIFY: using an `ArcSwap` here allows for simultaieous calls to the fiskaltrust.Middleware. If this is not safe we should use a Mutex for synchronization
 static CLIENT: Lazy<ArcSwap<reqwest::blocking::Client>> = Lazy::new(|| ArcSwap::new(Arc::new(set_client())));
 
 pub fn reset_client() {
