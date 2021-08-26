@@ -1,11 +1,8 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-#[cfg(feature = "mocks")]
-use fake::{Dummy, Fake};
-#[cfg(feature = "mocks")]
-use mockall::{predicate::*, *};
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use uuid::Uuid;
 
 #[cfg(feature = "mocks")]
@@ -138,11 +135,10 @@ pub struct TseInfo {
     pub serial_number_octet: String,
     pub public_key_base64: Base64,
     pub certificates_base64: Vec<Base64>,
-    #[cfg_attr(feature = "mocks", dummy(faker = "InfoFaker"))]
-    pub info: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 pub enum TseStates {
     Uninitialized = 0,

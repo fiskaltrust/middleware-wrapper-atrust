@@ -64,8 +64,16 @@ extern "C" fn initializeDescriptionSet() -> i32 {
 
 #[no_mangle]
 extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into()
-}
+    let tse_state = TseState {
+        current_state: TseStates::Initialized
+    };
+
+    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
+        error!("{}", err);
+        Into::<ReturnCode>::into(err).into()
+    });
+
+    ReturnCode::ExecutionOk.into()}
 
 #[no_mangle]
 extern "C" fn updateTime(newDateTime: i64) -> i32 {
@@ -709,7 +717,7 @@ extern "C" fn authenticateUser(userId: *const i8, userIdLength: u32, pin: *const
 
 #[no_mangle]
 extern "C" fn authenticateUserWithTse(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into()
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -719,7 +727,7 @@ extern "C" fn logOut(userId: *const i8, userIdLength: u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn logOutWithTse(userId: *const i8, userIdLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into()
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
@@ -729,5 +737,5 @@ extern "C" fn unblockUser(userId: *const i8, userIdLength: u32, puk: *const i8, 
 
 #[no_mangle]
 extern "C" fn unblockUserWithTse(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into()
+    ReturnCode::ExecutionOk.into()
 }
