@@ -16,6 +16,7 @@ use crate::{
 const MAX_CHUNK_SIZE: i32 = 1000;
 
 #[repr(u32)]
+#[allow(dead_code)]
 pub enum TssType {
     AsignTseOnline = 0,
     CryptoVision = 1,
@@ -49,6 +50,8 @@ pub enum UnblockResult {
 
 #[no_mangle]
 extern "C" fn initializeDescriptionNotSet(description: *const i8, description_length: u32) -> i32 {
+    log::info!("{}", "initializeDescriptionNotSet");
+
     initializeDescriptionNotSetWithTse(description, description_length, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -59,6 +62,8 @@ extern "C" fn initializeDescriptionNotSetWithTse(description: *const i8, descrip
 
 #[no_mangle]
 extern "C" fn initializeDescriptionSet() -> i32 {
+    log::info!("{}", "initializeDescriptionSet");
+
     initializeDescriptionSetWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -77,6 +82,8 @@ extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntr
 
 #[no_mangle]
 extern "C" fn updateTime(newDateTime: i64) -> i32 {
+    log::info!("{}", "updateTime");
+
     updateTimeWithTse(newDateTime, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -87,6 +94,8 @@ extern "C" fn updateTimeWithTse(newDateTime: i64, configEntry: *const i8, config
 
 #[no_mangle]
 extern "C" fn updateTimeWithTimeSync() -> i32 {
+    log::info!("{}", "updateTimeWithTimeSync");
+
     updateTimeWithTimeSyncWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -102,6 +111,8 @@ extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryL
 
 #[no_mangle]
 extern "C" fn disableSecureElement() -> i32 {
+    log::info!("{}", "disableSecureElement");
+
     disableSecureElementWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -137,6 +148,8 @@ extern "C" fn startTransaction(
     signatureValue: *mut *mut u8,
     signatureValueLength: *mut u32,
 ) -> i32 {
+    log::info!("{}", "startTransaction");
+
     startTransactionWithTse(
         clientId,
         clientIdLength,
@@ -231,6 +244,8 @@ extern "C" fn updateTransaction(
     signatureValueLength: *mut u32,
     signatureCounter: *mut u32,
 ) -> i32 {
+    log::info!("{}", "updateTransaction");
+
     updateTransactionWithTse(
         clientId,
         clientIdLength,
@@ -311,6 +326,8 @@ extern "C" fn finishTransaction(
     signatureValueLength: *mut u32,
     signatureCounter: *mut u32,
 ) -> i32 {
+    log::info!("{}", "finishTransaction");
+
     finishTransactionWithTse(
         clientId,
         clientIdLength,
@@ -382,6 +399,8 @@ extern "C" fn finishTransactionWithTse(
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberAndClientId(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportDataFilteredByTransactionNumberAndClientId");
+
     exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber, clientId, clientIdLength, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -393,6 +412,8 @@ extern "C" fn exportDataFilteredByTransactionNumberAndClientIdWithTse(transactio
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumber(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportDataFilteredByTransactionNumber");
+
     exportDataFilteredByTransactionNumberWithTse(transactionNumber, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -404,6 +425,8 @@ extern "C" fn exportDataFilteredByTransactionNumberWithTse(transactionNumber: u3
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberInterval(startTransactionNumber: u32, endTransactionNumber: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportDataFilteredByTransactionNumberInterval");
+
     exportDataFilteredByTransactionNumberIntervalWithTse(startTransactionNumber, endTransactionNumber, maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -414,6 +437,8 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalWithTse(startTransact
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientId(startTransactionNumber: u32, endTransactionNumber: u32, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportDataFilteredByTransactionNumberIntervalAndClientId");
+
     exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
         startTransactionNumber,
         endTransactionNumber,
@@ -500,6 +525,8 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByPeriodOfTime(startDate: i64, endDate: i64, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportDataFilteredByPeriodOfTime");
+
     exportDataFilteredByPeriodOfTimeWithTse(startDate, endDate, maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -510,6 +537,8 @@ extern "C" fn exportDataFilteredByPeriodOfTimeWithTse(startDate: i64, endDate: i
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByPeriodOfTimeAndClientId(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportDataFilteredByPeriodOfTimeAndClientId");
+
     exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate, endDate, clientId, clientIdLength, maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -576,6 +605,8 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64,
 
 #[no_mangle]
 extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportData");
+
     exportDataWithTse(maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -587,16 +618,20 @@ extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *m
 
 #[no_mangle]
 extern "C" fn exportCertificates(certificates: *mut *mut u8, certificatesLength: *mut u32) -> i32 {
+    log::info!("{}", "exportCertificates");
+
     exportCertificatesWithTse(certificates, certificatesLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
 extern "C" fn exportCertificatesWithTse(certificates: *mut *mut u8, certificatesLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unsafe { crate::asigntse::at_getCertificateWithTse(certificates, certificatesLength, configEntry, configEntryLength) }
+    unsafe { super::asigntse::at_getCertificateWithTse(certificates, certificatesLength, configEntry, configEntryLength) }
 }
 
 #[no_mangle]
 extern "C" fn restoreFromBackup(restoreData: *mut u8, restoreDataLength: u32) -> i32 {
+    log::info!("{}", "restoreFromBackup");
+
     restoreFromBackupWithTse(restoreData, restoreDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -607,6 +642,8 @@ extern "C" fn restoreFromBackupWithTse(restoreData: *mut u8, restoreDataLength: 
 
 #[no_mangle]
 extern "C" fn readLogMessage(logMessage: *mut *mut u8, logMessageLength: *mut u32) -> i32 {
+    log::info!("{}", "readLogMessage");
+
     readLogMessageWithTse(logMessage, logMessageLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -617,16 +654,20 @@ extern "C" fn readLogMessageWithTse(logMessage: *mut *mut u8, logMessageLength: 
 
 #[no_mangle]
 extern "C" fn exportSerialNumbers(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32) -> i32 {
+    log::info!("{}", "exportSerialNumbers");
+
     exportSerialNumbersWithTse(serialNumbers, serialNumbersLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
 extern "C" fn exportSerialNumbersWithTse(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unsafe { crate::asigntse::at_getSerialNumberWithTse(serialNumbers, serialNumbersLength, configEntry, configEntryLength) }
+    unsafe { super::asigntse::at_getSerialNumberWithTse(serialNumbers, serialNumbersLength, configEntry, configEntryLength) }
 }
 
 #[no_mangle]
 extern "C" fn getMaxNumberOfClients(maxNumberClients: *mut u32) -> i32 {
+    log::info!("{}", "getMaxNumberOfClients");
+
     unsafe { getMaxNumberOfClientsWithTse(maxNumberClients, b"default".as_ptr() as *const i8, "default".len() as u32) }
 }
 
@@ -643,6 +684,8 @@ pub unsafe extern "C" fn getMaxNumberOfClientsWithTse(maxNumberClients: *mut u32
 
 #[no_mangle]
 extern "C" fn getCurrentNumberOfClients(currentNumberClients: *mut u32) -> i32 {
+    log::info!("{}", "getCurrentNumberOfClients");
+
     getCurrentNumberOfClientsWithTse(currentNumberClients, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -659,6 +702,8 @@ extern "C" fn getCurrentNumberOfClientsWithTse(currentNumberClients: *mut u32, c
 
 #[no_mangle]
 extern "C" fn getMaxNumberOfTransactions(maxNumberTransactions: *mut u32) -> i32 {
+    log::info!("{}", "getMaxNumberOfTransactions");
+
     getMaxNumberOfTransactionsWithTse(maxNumberTransactions, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -675,6 +720,8 @@ extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32,
 
 #[no_mangle]
 extern "C" fn getCurrentNumberOfTransactions(currentNumberTransactions: *mut u32) -> i32 {
+    log::info!("{}", "getCurrentNumberOfTransactions");
+
     getCurrentNumberOfTransactionsWithTse(currentNumberTransactions, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -691,6 +738,8 @@ extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *
 
 #[no_mangle]
 extern "C" fn getSupportedTransactionUpdateVariants(supportedUpdateVariants: *mut UpdateVariants) -> i32 {
+    log::info!("{}", "getSupportedTransactionUpdateVariants");
+
     getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -702,6 +751,8 @@ extern "C" fn getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVarian
 
 #[no_mangle]
 extern "C" fn deleteStoredData() -> i32 {
+    log::info!("{}", "deleteStoredData");
+
     deleteStoredDataWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -712,6 +763,8 @@ extern "C" fn deleteStoredDataWithTse(configEntry: *const i8, configEntryLength:
 
 #[no_mangle]
 extern "C" fn authenticateUser(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16) -> i32 {
+    log::info!("{}", "authenticateUser");
+
     authenticateUserWithTse(userId, userIdLength, pin, pinLength, authenticationResult, remainingRetries, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -722,6 +775,8 @@ extern "C" fn authenticateUserWithTse(userId: *const i8, userIdLength: u32, pin:
 
 #[no_mangle]
 extern "C" fn logOut(userId: *const i8, userIdLength: u32) -> i32 {
+    log::info!("{}", "logOut");
+
     logOutWithTse(userId, userIdLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
@@ -732,6 +787,8 @@ extern "C" fn logOutWithTse(userId: *const i8, userIdLength: u32, configEntry: *
 
 #[no_mangle]
 extern "C" fn unblockUser(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult) -> i32 {
+    log::info!("{}", "unblockUser");
+
     unblockUserWithTse(userId, userIdLength, puk, pukLength, newPin, newPinLength, unblockResult, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 

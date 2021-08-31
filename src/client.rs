@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 
 use log::{error, warn};
@@ -43,12 +42,7 @@ fn set_client() -> reqwest::blocking::Client {
     }
 }
 
-// CLARIFY: using an `ArcSwap` here allows for simultaieous calls to the fiskaltrust.Middleware. If this is not safe we should use a Mutex for synchronization
 static CLIENT: Lazy<ArcSwap<reqwest::blocking::Client>> = Lazy::new(|| ArcSwap::new(Arc::new(set_client())));
-
-pub fn reset_client() {
-    CLIENT.store(Arc::new(set_client()));
-}
 
 const URL_VERSION: &str = "v1";
 macro_rules! url_version {
@@ -65,6 +59,12 @@ pub enum Error {
         source: reqwest::Error,
     },
 
+    #[error("Request could not be built: {source}")]
+    BuildingRequestFailed {
+        #[source]
+        source: reqwest::Error,
+    },
+
     #[error("Response statuscode did not indicate success: {0}")]
     Unsuccessful(reqwest::StatusCode),
 
@@ -76,35 +76,65 @@ impl From<Error> for ReturnCode {
     fn from(err: Error) -> Self {
         match err {
             Error::RequestFailed { source: _ } => ReturnCode::SeCommunicationFailed,
-            Error::Unsuccessful(_) => ReturnCode::Unknown,
             Error::NoScuUrl(_) => ReturnCode::InvalidConfig,
+            _ => ReturnCode::Unknown,
         }
     }
 }
 
 macro_rules! process_response {
-    ($response:ident) => {{
+    ($response:expr) => {{
         if !$response.status().is_success() {
             return Err(Error::Unsuccessful($response.status()).into());
         }
 
-        Ok($response.json()?)
+        let response = $response.json()?;
+
+        log::trace!("{:?}", response);
+
+        Ok(response)
+    }};
+}
+
+macro_rules! process_empty_response {
+    ($response:expr) => {{
+        if !$response.status().is_success() {
+            return Err(Error::Unsuccessful($response.status()).into());
+        }
+
+        Ok(())
     }};
 }
 
 macro_rules! post {
     ($url:expr, $body:expr) => {{
-        let response = CLIENT.load().post($url).json($body).send().map_err(|source| Error::RequestFailed { source })?;
+        let client = CLIENT.load();
+        let request = client.post($url).json($body).build().map_err(|source| Error::BuildingRequestFailed { source })?;
+        
+        log::trace!("{:?}", $body);
+        log::trace!("{:?}", request);
 
-        process_response!(response)
+        client.execute(request).map_err(|source| Error::RequestFailed { source })?
+    }};
+
+    ($url:expr) => {{
+        let client = CLIENT.load();
+        let request = client.post($url).header(reqwest::header::CONTENT_LENGTH, 0).build().map_err(|source| Error::BuildingRequestFailed { source })?;
+        
+        log::trace!("{:?}", request);
+
+        client.execute(request).map_err(|source| Error::RequestFailed { source })?
     }};
 }
 
 macro_rules! get {
     ($url:expr) => {{
-        let response = CLIENT.load().get($url).send().map_err(|source| Error::RequestFailed { source })?;
+        let client = CLIENT.load();
+        let request = client.get($url).build().map_err(|source| Error::BuildingRequestFailed { source })?;
+        
+        log::trace!("{:?}", request);
 
-        process_response!(response)
+        client.execute(request).map_err(|source| Error::RequestFailed { source })?
     }};
 }
 
@@ -124,62 +154,62 @@ impl IDeSscd for Client {
     type Error = Error;
 
     fn start_transaction(&self, request: &StartTransactionRequest) -> Result<StartTransactionResponse, Self::Error> {
-        post!(url_version!(self.base_url, "starttransaction"), &request)
+        process_response!(post!(url_version!(self.base_url, "starttransaction"), &request))
     }
 
     fn update_transaction(&self, request: &UpdateTransactionRequest) -> Result<UpdateTransactionResponse, Error> {
-        post!(url_version!(self.base_url, "updatetransaction"), &request)
+        process_response!(post!(url_version!(self.base_url, "updatetransaction"), &request))
     }
 
     fn finish_transaction(&self, request: &FinishTransactionRequest) -> Result<FinishTransactionResponse, Error> {
-        post!(url_version!(self.base_url, "finishtransaction"), &request)
+        process_response!(post!(url_version!(self.base_url, "finishtransaction"), &request))
     }
 
     fn get_tse_info(&self) -> Result<TseInfo, Error> {
-        get!(url_version!(self.base_url, "tseinfo"))
+        process_response!(get!(url_version!(self.base_url, "tseinfo")))
     }
 
     fn set_tse_state(&self, state: &TseState) -> Result<TseState, Error> {
-        post!(url_version!(self.base_url, "tsestate"), &state)
+        process_response!(post!(url_version!(self.base_url, "tsestate"), &state))
     }
 
     fn register_client_id(&self, request: &RegisterClientIdRequest) -> Result<RegisterClientIdResponse, Error> {
-        post!(url_version!(self.base_url, "registerclientid"), &request)
+        process_response!(post!(url_version!(self.base_url, "registerclientid"), &request))
     }
 
     fn unregister_client_id(&self, request: &UnregisterClientIdRequest) -> Result<UnregisterClientIdResponse, Error> {
-        post!(url_version!(self.base_url, "unregisterclientid"), &request)
+        process_response!(post!(url_version!(self.base_url, "unregisterclientid"), &request))
     }
 
     fn execute_set_tse_time(&self) -> Result<(), Error> {
-        get!(url_version!(self.base_url, "executesettsetime"))
+        process_empty_response!(post!(url_version!(self.base_url, "executesettsetime")))
     }
 
     fn execute_self_test(&self) -> Result<(), Error> {
-        get!(url_version!(self.base_url, "executeselftest"))
+        process_empty_response!(post!(url_version!(self.base_url, "executeselftest")))
     }
 
     fn start_export_session(&self, request: &StartExportSessionRequest) -> Result<StartExportSessionResponse, Error> {
-        post!(url_version!(self.base_url, "startexportsession"), &request)
+        process_response!(post!(url_version!(self.base_url, "startexportsession"), &request))
     }
 
     fn start_export_session_by_time_stamp(&self, request: &StartExportSessionByTimeStampRequest) -> Result<StartExportSessionResponse, Error> {
-        post!(url_version!(self.base_url, "startexportsessionbytimestamp"), &request)
+        process_response!(post!(url_version!(self.base_url, "startexportsessionbytimestamp"), &request))
     }
 
     fn start_export_session_by_transaction(&self, request: &StartExportSessionByTransactionRequest) -> Result<StartExportSessionResponse, Error> {
-        post!(url_version!(self.base_url, "startexportsessionbytransaction"), &request)
+        process_response!(post!(url_version!(self.base_url, "startexportsessionbytransaction"), &request))
     }
 
     fn export_data(&self, request: &ExportDataRequest) -> Result<ExportDataResponse, Error> {
-        post!(url_version!(self.base_url, "exportdata"), &request)
+        process_response!(post!(url_version!(self.base_url, "exportdata"), &request))
     }
 
     fn end_export_session(&self, request: &EndExportSessionRequest) -> Result<EndExportSessionResponse, Error> {
-        post!(url_version!(self.base_url, "endexportsession"), &request)
+        process_response!(post!(url_version!(self.base_url, "endexportsession"), &request))
     }
 
     fn echo(&self, request: &ScuDeEchoRequest) -> Result<ScuDeEchoResponse, Error> {
-        post!(url_version!(self.base_url, "echo"), &request)
+        process_response!(post!(url_version!(self.base_url, "echo"), &request))
     }
 }

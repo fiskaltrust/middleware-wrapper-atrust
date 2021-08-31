@@ -13,6 +13,11 @@ use wiremock::{
 #[macro_use]
 mod helpers;
 
+static SCU_URL: Lazy<Option<String>> = Lazy::new(|| {
+    std::env::var("SCU_URL").ok()
+});
+
+
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
 
@@ -66,8 +71,13 @@ impl Respond for FakerResponder {
 static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
     async_std::task::block_on(async {
         let mock_server = MockServer::start().await;
-
+        
         let config = std::fs::read_to_string(CONFIG_FILE).unwrap();
+        
+        if let Some(scu_url) = SCU_URL.as_ref() {
+            std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", scu_url)).unwrap();
+            return mock_server;
+        }
 
         std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
 
@@ -128,6 +138,19 @@ static SETUP_STRUSTAPI: Lazy<dlopen::symbor::Library> = Lazy::new(|| {
 
 #[test]
 #[serial]
+fn at_run_self_tests() {
+    Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
+    let dylib = &SETUP_STRUSTAPI;
+
+    let at_run_self_tests = unsafe { dylib.symbol::<extern "C" fn() -> i32>("at_runSelfTests").unwrap() };
+
+    let result: ReturnCode = ReturnCode::try_from(at_run_self_tests()).unwrap();
+
+    assert_eq!(result, ReturnCode::ExecutionOk);
+}
+
+#[test]
+#[serial]
 fn at_get_public_key_with_tse() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
     let dylib = &SETUP_STRUSTAPI;
@@ -140,12 +163,40 @@ fn at_get_public_key_with_tse() {
     let tse_id = "default";
     let result: ReturnCode = ReturnCode::try_from(at_get_public_key_with_tse(pub_key.as_mut_ptr(), pub_key_length.as_mut_ptr(), tse_id.as_ptr() as *const i8, tse_id.len() as u32)).unwrap();
 
-    println!("{}", result.to_string());
     assert_eq!(result, ReturnCode::ExecutionOk);
 
     println!("pub_key: {}", unsafe { ffi::from_cstr(*pub_key.as_ptr() as *const i8, *pub_key_length.as_ptr()) });
 
     unsafe { ffi::free_ptr(pub_key.as_mut_ptr() as *mut *mut std::os::raw::c_void) };
+}
+
+#[test]
+#[serial]
+fn at_register_client_id() {
+    at_register_client_id_internal();
+}
+
+fn at_register_client_id_internal() -> String {
+    Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
+    let dylib = &SETUP_STRUSTAPI;
+
+    let at_register_client_id = unsafe {
+        dylib
+            .symbol::<extern "C" fn(*const i8, u32) -> i32>("at_registerClientId")
+            .unwrap()
+    };
+
+    let client_id: String = Faker.fake();
+
+    let result: ReturnCode = ReturnCode::try_from(at_register_client_id(
+        client_id.as_ptr() as *const i8,
+        client_id.len() as u32,
+    ))
+    .unwrap();
+
+    assert_eq!(result, ReturnCode::ExecutionOk);
+
+    client_id
 }
 
 #[test]
@@ -160,6 +211,7 @@ fn start_transaction() {
             .unwrap()
     };
 
+    let client_id = at_register_client_id_internal();
     let mut transaction_number = std::mem::MaybeUninit::<u32>::uninit();
     let mut log_time = std::mem::MaybeUninit::<i64>::uninit();
     let mut serial_number = std::mem::MaybeUninit::<*mut u8>::uninit();
@@ -169,8 +221,8 @@ fn start_transaction() {
     let mut signature_value_length = std::mem::MaybeUninit::<u32>::uninit();
 
     let result: ReturnCode = ReturnCode::try_from(start_transaction(
-        "clientId".as_ptr() as *const i8,
-        "clientId".len() as u32,
+        client_id.as_ptr() as *const i8,
+        client_id.len() as u32,
         "processData".as_bytes().as_ptr(),
         "processData".len() as u32,
         "processType".as_ptr() as *const i8,
@@ -187,7 +239,6 @@ fn start_transaction() {
     ))
     .unwrap();
 
-    println!("{}", result.to_string());
     assert_eq!(result, ReturnCode::ExecutionOk);
 
     println!("transaction_number: {}", unsafe { *transaction_number.as_ptr() });
@@ -214,21 +265,22 @@ fn export_data_filtered_by_transaction_number_interval_and_client_id() {
             .unwrap()
     };
 
+    let client_id = at_register_client_id_internal();
+
     let mut exported_data = std::mem::MaybeUninit::<*mut u8>::uninit();
     let mut exported_data_length = std::mem::MaybeUninit::<u32>::uninit();
 
     let result: ReturnCode = ReturnCode::try_from(export_data_filtered_by_transaction_number_interval_and_client_id(
         0,
         1,
-        "clientId".as_bytes().as_ptr() as *const i8,
-        "clientId".len() as u32,
+        client_id.as_bytes().as_ptr() as *const i8,
+        client_id.len() as u32,
         u32::MAX,
         exported_data.as_mut_ptr(),
         exported_data_length.as_mut_ptr(),
     ))
     .unwrap();
 
-    println!("{}", result.to_string());
     assert_eq!(result, ReturnCode::ExecutionOk);
 
     println!("exported_data: {}", base64::encode(unsafe { ffi::from_cba(*exported_data.as_ptr(), *exported_data_length.as_ptr()) }));

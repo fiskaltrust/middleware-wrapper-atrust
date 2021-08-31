@@ -989,6 +989,7 @@ dependencies = [
  "dlopen",
  "fake",
  "flexi_logger",
+ "hex",
  "libc",
  "log",
  "mockall",

@@ -7,8 +7,6 @@ static LOGGER: OnceCell<flexi_logger::LoggerHandle> = OnceCell::new();
 pub enum Error {
     #[error("Lock for general config is poisoned")]
     LockingConfig,
-    #[error("Lock for logger is poisoned")]
-    LockingLogger,
     #[error("Could not parse log_level: {0}")]
     ParsingLogLevel(#[source] flexi_logger::FlexiLoggerError),
     #[error("Logger error: {0}")]

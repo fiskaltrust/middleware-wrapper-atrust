@@ -1,14 +1,16 @@
-use std::collections::HashMap;
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "mocks")]
+use fake::{Dummy, Fake};
+#[cfg(feature = "mocks")]
+use mockall::{predicate::*, *};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use uuid::Uuid;
 
 #[cfg(feature = "mocks")]
 use crate::helpers::fakers::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Base64(String);
 
 impl Base64 {
@@ -28,7 +30,7 @@ impl Base64 {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartTransactionRequest {
@@ -40,7 +42,7 @@ pub struct StartTransactionRequest {
     pub is_retry: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseSignatureData {
@@ -50,7 +52,7 @@ pub struct TseSignatureData {
     pub public_key_base64: Base64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartTransactionResponse {
@@ -61,7 +63,7 @@ pub struct StartTransactionResponse {
     pub signature_data: TseSignatureData,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UpdateTransactionRequest {
@@ -73,7 +75,7 @@ pub struct UpdateTransactionRequest {
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UpdateTransactionResponse {
@@ -86,7 +88,7 @@ pub struct UpdateTransactionResponse {
     pub signature_data: TseSignatureData,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct FinishTransactionRequest {
@@ -98,7 +100,7 @@ pub struct FinishTransactionRequest {
     pub queue_item_id: Uuid,
     pub is_retry: bool,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct FinishTransactionResponse {
@@ -113,7 +115,7 @@ pub struct FinishTransactionResponse {
     pub signature_data: TseSignatureData,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseInfo {
@@ -137,7 +139,7 @@ pub struct TseInfo {
     pub certificates_base64: Vec<Base64>,
 }
 
-#[derive(Serialize_repr, Deserialize_repr)]
+#[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 pub enum TseStates {
@@ -146,47 +148,47 @@ pub enum TseStates {
     Terminated = 2,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct TseState {
     pub current_state: TseStates,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct RegisterClientIdRequest {
     pub client_id: String,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct RegisterClientIdResponse {
     pub client_ids: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UnregisterClientIdRequest {
     pub client_id: String,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct UnregisterClientIdResponse {
     pub client_ids: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionRequest {
     pub client_id: String,
     pub erase: bool,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionResponse {
@@ -194,7 +196,7 @@ pub struct StartExportSessionResponse {
     pub tse_serial_number_octet: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionByTimeStampRequest {
@@ -203,7 +205,7 @@ pub struct StartExportSessionByTimeStampRequest {
     pub to: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct StartExportSessionByTransactionRequest {
@@ -212,14 +214,14 @@ pub struct StartExportSessionByTransactionRequest {
     pub to: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ExportDataRequest {
     pub token_id: String,
     pub max_chunk_size: i32,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ExportDataResponse {
@@ -231,7 +233,7 @@ pub struct ExportDataResponse {
     pub total_tar_file_size: i64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct EndExportSessionRequest {
@@ -239,7 +241,7 @@ pub struct EndExportSessionRequest {
     pub sha256_checksum_base64: String,
     pub erase: bool,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct EndExportSessionResponse {
@@ -249,13 +251,13 @@ pub struct EndExportSessionResponse {
     pub is_erased: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ScuDeEchoRequest {
     pub message: String,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "mocks", derive(Dummy))]
 #[serde(rename_all = "PascalCase")]
 pub struct ScuDeEchoResponse {

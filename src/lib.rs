@@ -2,9 +2,10 @@
 #[macro_use]
 pub mod helpers;
 
-pub mod atrustapi;
-pub use atrustapi::*;
-pub mod client;
+mod atrustapi;
+pub use atrustapi::return_codes;
+mod client;
 mod config;
 pub mod idesscd;
-pub mod logging;
+mod logging;
+

@@ -6,6 +6,8 @@ use crate::{config, helpers::ffi, logging, return_codes::ReturnCode};
 
 #[no_mangle]
 extern "C" fn cfgSetConfigFile(path: *const i8, pathLength: u32) -> i32 {
+    log::info!("{}", "cfgSetConfigFile");
+
     if !crate::config::set_config_file(&ffi::from_cstr(path, pathLength)) {
         return ReturnCode::ConfigFileNotFound.into();
     }
@@ -38,6 +40,8 @@ extern "C" fn cfgTseAdd(
     timeAdminPwd: *const i8,
     timeAdminPwdLength: u32,
 ) -> i32 {
+    log::info!("{}", "cfgTseAdd");
+
     ReturnCode::NotImplemented.into()
 }
 
@@ -59,61 +63,85 @@ extern "C" fn cfgTseAddPremium(
     licenceKey: *const i8,
     licenceKeyLength: u32,
 ) -> i32 {
+    log::info!("{}", "cfgTseAddPremium");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgTseRemove(tseID: *const i8, tseIDLength: u32) -> i32 {
+    log::info!("{}", "cfgTseRemove");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLoggingEnabled(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLoggingEnabled");
+
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLoggingStderr(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLoggingStderr");
+
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLoggingFile(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLoggingFile");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogDir(path: *const i8, pathLength: u32) -> i32 {
+    log::info!("{}", "cfgSetLogDir");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogLevel(logLevel: *const i8, logLevelLength: u32) -> i32 {
+    log::info!("{}", "cfgSetLogLevel");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogAppend(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLogAppend");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogColors(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLogColors");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogDetails(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLogDetails");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetLogStderrColors(enabled: bool) -> i32 {
+    log::info!("{}", "cfgSetLogStderrColors");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
+    log::info!("{}", "cfgSetHttpProxy");
+
     let mut general_config = ok_or_return!(config::GENERAL_CONFIG.lock(), |err| ReturnCode::Unknown.into());
 
     general_config.http_proxy = Some(ffi::from_cstr(proxyUrl, proxyUrlLength));
@@ -123,6 +151,8 @@ extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
 
 #[no_mangle]
 extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyUrlLength: u32, proxyUsername: *const i8, proxyUsernameLength: u32, proxyPassword: *const i8, proxyPasswordLength: u32) -> i32 {
+    log::info!("{}", "cfgSetHttpProxyWithUsernameAndPassword");
+
     let mut general_config = ok_or_return!(config::GENERAL_CONFIG.lock(), |err| ReturnCode::Unknown.into());
 
     general_config.http_proxy = Some(ffi::from_cstr(proxyUrl, proxyUrlLength));
@@ -134,20 +164,28 @@ extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyU
 
 #[no_mangle]
 extern "C" fn cfgSetTimeout(timeout: u64) -> i32 {
+    log::info!("{}", "cfgSetTimeout");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetRetries(retries: u64) -> i32 {
+    log::info!("{}", "cfgSetRetries");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetUploadMessageInterval(interval: u32) -> i32 {
+    log::info!("{}", "cfgSetUploadMessageInterval");
+
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
 extern "C" fn cfgSetMaxAuditLogSize(maximum: u32) -> i32 {
+    log::info!("{}", "cfgSetMaxAuditLogSize");
+
     ReturnCode::NotImplemented.into()
 }
