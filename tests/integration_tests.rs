@@ -20,6 +20,7 @@ static SCU_URL: Lazy<Option<String>> = Lazy::new(|| {
 
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
+const CONFIG_FILE_DOTNET_TARGET: &str = "./tests/middleware-wrapper-atrust-dotnet-test/asigntseonline.conf";
 
 static MOCK_IDESSCD: Lazy<MockIDeSscd> = Lazy::new(|| {
     let mut mock_idesscd = MockIDeSscd::new();
@@ -80,6 +81,7 @@ static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
         }
 
         std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
+        std::fs::write(CONFIG_FILE_DOTNET_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
 
         Mock::given(method("POST")).and(path("/v1/starttransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_transaction(&req).unwrap())).mount(&mock_server).await;
 
@@ -123,7 +125,7 @@ static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
     })
 });
 
-static SETUP_STRUSTAPI: Lazy<dlopen::symbor::Library> = Lazy::new(|| {
+static SETUP_ATRUSTAPI: Lazy<dlopen::symbor::Library> = Lazy::new(|| {
     let dylib_path = test_cdylib::build_current_project();
     let dylib = dlopen::symbor::Library::open(&dylib_path).unwrap();
 
@@ -137,10 +139,19 @@ static SETUP_STRUSTAPI: Lazy<dlopen::symbor::Library> = Lazy::new(|| {
 });
 
 #[test]
+#[ignore = "dotnet-test"]
+#[serial]
+fn only_setup_mocks() {
+    Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
+
+    let _ = std::io::Read::read(&mut std::io::stdin(), &mut [0u8]).unwrap();
+}
+
+#[test]
 #[serial]
 fn at_run_self_tests() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
-    let dylib = &SETUP_STRUSTAPI;
+    let dylib = &SETUP_ATRUSTAPI;
 
     let at_run_self_tests = unsafe { dylib.symbol::<extern "C" fn() -> i32>("at_runSelfTests").unwrap() };
 
@@ -153,7 +164,7 @@ fn at_run_self_tests() {
 #[serial]
 fn at_get_public_key_with_tse() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
-    let dylib = &SETUP_STRUSTAPI;
+    let dylib = &SETUP_ATRUSTAPI;
 
     let at_get_public_key_with_tse = unsafe { dylib.symbol::<extern "C" fn(*mut *mut u8, *mut u32, *const i8, u32) -> i32>("at_getPublicKeyWithTse").unwrap() };
 
@@ -178,7 +189,7 @@ fn at_register_client_id() {
 
 fn at_register_client_id_internal() -> String {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
-    let dylib = &SETUP_STRUSTAPI;
+    let dylib = &SETUP_ATRUSTAPI;
 
     let at_register_client_id = unsafe {
         dylib
@@ -203,7 +214,7 @@ fn at_register_client_id_internal() -> String {
 #[serial]
 fn start_transaction() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
-    let dylib = &SETUP_STRUSTAPI;
+    let dylib = &SETUP_ATRUSTAPI;
 
     let start_transaction = unsafe {
         dylib
@@ -257,7 +268,7 @@ fn start_transaction() {
 #[serial]
 fn export_data_filtered_by_transaction_number_interval_and_client_id() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
-    let dylib = &SETUP_STRUSTAPI;
+    let dylib = &SETUP_ATRUSTAPI;
 
     let export_data_filtered_by_transaction_number_interval_and_client_id = unsafe {
         dylib
