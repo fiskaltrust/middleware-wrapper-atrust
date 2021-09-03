@@ -26,12 +26,12 @@ pub enum LifecycleState {
 extern "C" fn at_getLifecycleState(state: *mut LifecycleState) -> i32 {
     log::info!("{}", "at_getLifecycleState");
 
-
     at_getLifecycleStateWithTse(state, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *const i8, tseIdLength: u32) -> i32 {    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *const i8, tseIdLength: u32) -> i32 {
+    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -39,7 +39,7 @@ extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *co
     let lifecycle_state: LifecycleState = match tse_info.current_state {
         TseStates::Uninitialized => LifecycleState::NotInitialized,
         TseStates::Initialized => LifecycleState::Active,
-        TseStates::Terminated => LifecycleState::Disabled
+        TseStates::Terminated => LifecycleState::Disabled,
     };
 
     unsafe { ffi::set_u32_ptr(state as *mut u32, tse_info.current_state as u32) };

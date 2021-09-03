@@ -1,0 +1,72 @@
+jobs:
+- job: style
+  displayName: Style linting
+  strategy:
+    matrix:
+      stable:
+        rust: stable
+  pool:
+    vmImage: windows-latest
+  continueOnError: $[eq(variables.rust, 'beta')]
+  steps:
+    - template: templates/install-rust.yml
+      parameters:
+        rust: $(rust)
+        components:
+          - rustfmt
+          - clippy
+
+    - script: cargo fmt --all -- --check
+      displayName: cargo fmt
+
+    - script: cargo clippy --all
+      displayName: cargo clippy
+
+- job: test
+  displayName: Run Tests
+  dependsOn: []
+    strategy:
+      matrix:
+        windows:
+          vmImage: windows-latest
+          rust: stable
+  pool:
+    vmImage: $(vmImage)
+  steps:
+    - template: install-rust.yml
+      parameters:
+        rust: $(rust)
+
+    - script: cargo test --all-features
+      displayName: cargo test
+
+    - script: cargo doc --no-deps
+      displayName: cargo doc
+
+- job: build
+  displayName: Build
+  dependsOn: []
+    strategy:
+      matrix:
+        windows-x64:
+          vmImage: windows-latest
+          rust: stable
+        windows-x86:
+          vmImage: windows-latest
+          rust: stable-i686
+  pool:
+    vmImage: $(vmImage)
+  steps:
+    - template: install-rust.yml
+      parameters:
+        rust: $(rust)
+
+    - script: cargo build --release
+      displayName: cargo build
+    
+    - task: CopyFiles@2
+      inputs:
+        Contents: target/release/*.dll
+        TargetFolder: $(Build.ArtifactStagingDirectory)
+
+    - publish: $(Build.ArtifactStagingDirectory)

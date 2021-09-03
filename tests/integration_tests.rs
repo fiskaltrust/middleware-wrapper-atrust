@@ -13,10 +13,7 @@ use wiremock::{
 #[macro_use]
 mod helpers;
 
-static SCU_URL: Lazy<Option<String>> = Lazy::new(|| {
-    std::env::var("SCU_URL").ok()
-});
-
+static SCU_URL: Lazy<Option<String>> = Lazy::new(|| std::env::var("SCU_URL").ok());
 
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
@@ -71,9 +68,9 @@ impl Respond for FakerResponder {
 static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
     async_std::task::block_on(async {
         let mock_server = MockServer::start().await;
-        
+
         let config = std::fs::read_to_string(CONFIG_FILE).unwrap();
-        
+
         if let Some(scu_url) = SCU_URL.as_ref() {
             std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", scu_url)).unwrap();
             return mock_server;
@@ -189,19 +186,11 @@ fn at_register_client_id_internal() -> String {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
     let dylib = &SETUP_ATRUSTAPI;
 
-    let at_register_client_id = unsafe {
-        dylib
-            .symbol::<extern "C" fn(*const i8, u32) -> i32>("at_registerClientId")
-            .unwrap()
-    };
+    let at_register_client_id = unsafe { dylib.symbol::<extern "C" fn(*const i8, u32) -> i32>("at_registerClientId").unwrap() };
 
     let client_id: String = Faker.fake();
 
-    let result: ReturnCode = ReturnCode::try_from(at_register_client_id(
-        client_id.as_ptr() as *const i8,
-        client_id.len() as u32,
-    ))
-    .unwrap();
+    let result: ReturnCode = ReturnCode::try_from(at_register_client_id(client_id.as_ptr() as *const i8, client_id.len() as u32)).unwrap();
 
     assert_eq!(result, ReturnCode::ExecutionOk);
 
@@ -268,24 +257,14 @@ fn export_data_with_client_id() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
     let dylib = &SETUP_ATRUSTAPI;
 
-    let export_data_with_client_id = unsafe {
-        dylib
-            .symbol::<extern "C" fn(*const i8, u32, *mut *mut u8, *mut u32) -> i32>("exportDataWithClientId")
-            .unwrap()
-    };
+    let export_data_with_client_id = unsafe { dylib.symbol::<extern "C" fn(*const i8, u32, *mut *mut u8, *mut u32) -> i32>("exportDataWithClientId").unwrap() };
 
     let client_id = at_register_client_id_internal();
 
     let mut exported_data = std::mem::MaybeUninit::<*mut u8>::uninit();
     let mut exported_data_length = std::mem::MaybeUninit::<u32>::uninit();
 
-    let result: ReturnCode = ReturnCode::try_from(export_data_with_client_id(
-        client_id.as_bytes().as_ptr() as *const i8,
-        client_id.len() as u32,
-        exported_data.as_mut_ptr(),
-        exported_data_length.as_mut_ptr(),
-    ))
-    .unwrap();
+    let result: ReturnCode = ReturnCode::try_from(export_data_with_client_id(client_id.as_bytes().as_ptr() as *const i8, client_id.len() as u32, exported_data.as_mut_ptr(), exported_data_length.as_mut_ptr())).unwrap();
 
     assert_eq!(result, ReturnCode::ExecutionOk);
 

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use arc_swap::ArcSwap;
 use log::{error, warn};
 use once_cell::sync::Lazy;
 use thiserror::Error;
-use arc_swap::ArcSwap;
 
 use crate::{config, idesscd::*, return_codes::ReturnCode};
 
@@ -110,7 +110,7 @@ macro_rules! post {
     ($url:expr, $body:expr) => {{
         let client = CLIENT.load();
         let request = client.post($url).json($body).build().map_err(|source| Error::BuildingRequestFailed { source })?;
-        
+
         log::trace!("{:?}", $body);
         log::trace!("{:?}", request);
 
@@ -120,7 +120,7 @@ macro_rules! post {
     ($url:expr) => {{
         let client = CLIENT.load();
         let request = client.post($url).header(reqwest::header::CONTENT_LENGTH, 0).build().map_err(|source| Error::BuildingRequestFailed { source })?;
-        
+
         log::trace!("{:?}", request);
 
         client.execute(request).map_err(|source| Error::RequestFailed { source })?
@@ -131,7 +131,7 @@ macro_rules! get {
     ($url:expr) => {{
         let client = CLIENT.load();
         let request = client.get($url).build().map_err(|source| Error::BuildingRequestFailed { source })?;
-        
+
         log::trace!("{:?}", request);
 
         client.execute(request).map_err(|source| Error::RequestFailed { source })?

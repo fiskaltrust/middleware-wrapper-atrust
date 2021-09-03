@@ -68,16 +68,15 @@ extern "C" fn initializeDescriptionSet() -> i32 {
 
 #[no_mangle]
 extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_state = TseState {
-        current_state: TseStates::Initialized
-    };
+    let tse_state = TseState { current_state: TseStates::Initialized };
 
     try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    ReturnCode::ExecutionOk.into()}
+    ReturnCode::ExecutionOk.into()
+}
 
 #[no_mangle]
 extern "C" fn updateTime(newDateTime: i64) -> i32 {
@@ -117,9 +116,7 @@ extern "C" fn disableSecureElement() -> i32 {
 
 #[no_mangle]
 extern "C" fn disableSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_state = TseState {
-        current_state: TseStates::Terminated
-    };
+    let tse_state = TseState { current_state: TseStates::Terminated };
 
     try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
         error!("{}", err);
