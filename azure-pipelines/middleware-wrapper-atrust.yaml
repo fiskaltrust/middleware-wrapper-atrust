@@ -9,7 +9,7 @@ jobs:
     vmImage: windows-latest
   continueOnError: $[eq(variables.rust, 'beta')]
   steps:
-    - template: templates/install-rust.yml
+    - template: templates/install-rust.yaml
       parameters:
         rust: $(rust)
         components:
@@ -33,7 +33,7 @@ jobs:
   pool:
     vmImage: $(vmImage)
   steps:
-    - template: templates/install-rust.yml
+    - template: templates/install-rust.yaml
       parameters:
         rust: $(rust)
 
@@ -59,7 +59,7 @@ jobs:
   pool:
     vmImage: $(vmImage)
   steps:
-    - template: templates/install-rust.yml
+    - template: templates/install-rust.yaml
       parameters:
         rust: $(rust)
 
