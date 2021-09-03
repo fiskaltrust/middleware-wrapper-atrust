@@ -63,13 +63,14 @@ jobs:
       parameters:
         rust: $(rust)
 
-    - script: cargo build --release
-      displayName: cargo build
+    - script: cargo +$(rust) build --release
+      displayName: cargo build $(target)
     
     - task: CopyFiles@2
       inputs:
-        Contents: target/release/*.dll
+        SourceFolder: target/release
+        Contents: '*.dll'
         TargetFolder: $(Build.ArtifactStagingDirectory)
 
     - publish: $(Build.ArtifactStagingDirectory)
-      artifact: x86
+      artifact: $(target)
