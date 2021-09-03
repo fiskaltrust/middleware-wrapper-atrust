@@ -9,7 +9,7 @@ use crate::{
     client::{self, Client},
     helpers::ffi,
     idesscd::*,
-    return_codes::ReturnCode,
+    atrustapi::return_codes::ReturnCode,
 };
 
 const MAX_CHUNK_SIZE: i32 = 1000;
@@ -47,27 +47,33 @@ pub enum UnblockResult {
     Error = 3,
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn initializeDescriptionNotSet(description: *const i8, description_length: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn initializeDescriptionNotSet(description: *const i8, description_length: u32) -> i32 {
     log::info!("{}", "initializeDescriptionNotSet");
 
     initializeDescriptionNotSetWithTse(description, description_length, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn initializeDescriptionNotSetWithTse(description: *const i8, description_length: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn initializeDescriptionNotSetWithTse(description: *const i8, description_length: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
-extern "C" fn initializeDescriptionSet() -> i32 {
+pub extern "C" fn initializeDescriptionSet() -> i32 {
     log::info!("{}", "initializeDescriptionSet");
 
     initializeDescriptionSetWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_state = TseState { current_state: TseStates::Initialized };
 
     try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
@@ -79,26 +85,26 @@ extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntr
 }
 
 #[no_mangle]
-extern "C" fn updateTime(newDateTime: i64) -> i32 {
+pub extern "C" fn updateTime(newDateTime: i64) -> i32 {
     log::info!("{}", "updateTime");
 
     updateTimeWithTse(newDateTime, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn updateTimeWithTse(newDateTime: i64, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn updateTimeWithTse(newDateTime: i64, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn updateTimeWithTimeSync() -> i32 {
+pub extern "C" fn updateTimeWithTimeSync() -> i32 {
     log::info!("{}", "updateTimeWithTimeSync");
 
     updateTimeWithTimeSyncWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
     try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.execute_set_tse_time(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
@@ -108,14 +114,14 @@ extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryL
 }
 
 #[no_mangle]
-extern "C" fn disableSecureElement() -> i32 {
+pub extern "C" fn disableSecureElement() -> i32 {
     log::info!("{}", "disableSecureElement");
 
     disableSecureElementWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn disableSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn disableSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_state = TseState { current_state: TseStates::Terminated };
 
     try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
@@ -127,7 +133,7 @@ extern "C" fn disableSecureElementWithTse(configEntry: *const i8, configEntryLen
 }
 
 #[no_mangle]
-extern "C" fn startTransaction(
+pub unsafe extern "C" fn startTransaction(
     clientId: *const i8,
     clientIdLength: u32,
     processData: *const u8,
@@ -168,7 +174,7 @@ extern "C" fn startTransaction(
 }
 
 #[no_mangle]
-extern "C" fn startTransactionWithTse(
+pub unsafe extern "C" fn startTransactionWithTse(
     clientId: *const i8,
     clientIdLength: u32,
     processData: *const u8,
@@ -190,7 +196,7 @@ extern "C" fn startTransactionWithTse(
     let start_transaction_request = StartTransactionRequest {
         client_id: ffi::from_cstr(clientId, clientIdLength),
         process_type: ffi::from_cstr(processType, processTypeLength),
-        process_data_base64: Base64::from(unsafe { ffi::from_cba(processData, processDataLength) }),
+        process_data_base64: Base64::from(ffi::from_cba(processData, processDataLength)),
         queue_item_id: uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, "fiskaltrust.eu".as_bytes()),
         is_retry: false,
     };
@@ -210,24 +216,22 @@ extern "C" fn startTransactionWithTse(
         .into()
     });
 
-    unsafe {
-        ffi::set_u32_ptr(transactionNumber, transaction_number as u32);
-        ffi::set_i64_ptr(logTime, time_stamp.timestamp());
-        ffi::set_u32_ptr(signatureCounter, signature_data.signature_counter as u32);
-        ffi::set_cstr(serialNumber, serialNumberLength, tse_serial_number_octet);
-        let signature_value = try_or_return!(|| signature_data.signature_base64.decode(), |err| {
-            error!("{}", err);
-            ReturnCode::RetrieveLogMessageFailed.into()
-        });
-        ffi::set_byte_buf(signatureValue, signature_value.as_slice());
-        ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
-    }
+    ffi::set_u32_ptr(transactionNumber, transaction_number as u32);
+    ffi::set_i64_ptr(logTime, time_stamp.timestamp());
+    ffi::set_u32_ptr(signatureCounter, signature_data.signature_counter as u32);
+    ffi::set_cstr(serialNumber, serialNumberLength, tse_serial_number_octet);
+    let signature_value = try_or_return!(|| signature_data.signature_base64.decode(), |err| {
+        error!("{}", err);
+        ReturnCode::RetrieveLogMessageFailed.into()
+    });
+    ffi::set_byte_buf(signatureValue, signature_value.as_slice());
+    ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
 
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn updateTransaction(
+pub unsafe extern "C" fn updateTransaction(
     clientId: *const i8,
     clientIdLength: u32,
     transactionNumber: u32,
@@ -260,7 +264,7 @@ extern "C" fn updateTransaction(
 }
 
 #[no_mangle]
-extern "C" fn updateTransactionWithTse(
+pub unsafe extern "C" fn updateTransactionWithTse(
     clientId: *const i8,
     clientIdLength: u32,
     transactionNumber: u32,
@@ -278,7 +282,7 @@ extern "C" fn updateTransactionWithTse(
     let update_transaction_request = UpdateTransactionRequest {
         client_id: ffi::from_cstr(clientId, clientIdLength),
         process_type: ffi::from_cstr(processType, processTypeLength),
-        process_data_base64: Base64::from(unsafe { ffi::from_cba(processData, processDataLength) }),
+        process_data_base64: Base64::from(ffi::from_cba(processData, processDataLength)),
         queue_item_id: uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, "fiskaltrust.eu".as_bytes()),
         is_retry: false,
         transaction_number: transactionNumber as u64,
@@ -293,21 +297,20 @@ extern "C" fn updateTransactionWithTse(
         .into()
     });
 
-    unsafe {
-        ffi::set_i64_ptr(logTime, update_transaction_response.time_stamp.timestamp());
-        ffi::set_u32_ptr(signatureCounter, update_transaction_response.signature_data.signature_counter as u32);
-        let signature_value = try_or_return!(|| update_transaction_response.signature_data.signature_base64.decode(), |err| {
-            error!("{}", err);
-            ReturnCode::RetrieveLogMessageFailed.into()
-        });
-        ffi::set_byte_buf(signatureValue, signature_value.as_slice());
-        ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
-    }
-    ReturnCode::ExecutionOk.into()
+    ffi::set_i64_ptr(logTime, update_transaction_response.time_stamp.timestamp());
+    ffi::set_u32_ptr(signatureCounter, update_transaction_response.signature_data.signature_counter as u32);
+    let signature_value = try_or_return!(|| update_transaction_response.signature_data.signature_base64.decode(), |err| {
+        error!("{}", err);
+        ReturnCode::RetrieveLogMessageFailed.into()
+    });
+    ffi::set_byte_buf(signatureValue, signature_value.as_slice());
+    ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
+
+        ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn finishTransaction(
+pub unsafe extern "C" fn finishTransaction(
     clientId: *const i8,
     clientIdLength: u32,
     transactionNumber: u32,
@@ -344,7 +347,7 @@ extern "C" fn finishTransaction(
 }
 
 #[no_mangle]
-extern "C" fn finishTransactionWithTse(
+pub unsafe extern "C" fn finishTransactionWithTse(
     clientId: *const i8,
     clientIdLength: u32,
     transactionNumber: u32,
@@ -364,7 +367,7 @@ extern "C" fn finishTransactionWithTse(
     let finish_transaction_request = FinishTransactionRequest {
         client_id: ffi::from_cstr(clientId, clientIdLength),
         process_type: ffi::from_cstr(processType, processTypeLength),
-        process_data_base64: Base64::from(unsafe { ffi::from_cba(processData, processDataLength) }),
+        process_data_base64: Base64::from(ffi::from_cba(processData, processDataLength)),
         queue_item_id: uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, "fiskaltrust.eu".as_bytes()),
         is_retry: false,
         transaction_number: transactionNumber as u64,
@@ -379,58 +382,77 @@ extern "C" fn finishTransactionWithTse(
         .into()
     });
 
-    unsafe {
-        ffi::set_i64_ptr(logTime, finish_transaction_response.time_stamp.timestamp());
-        ffi::set_u32_ptr(signatureCounter, finish_transaction_response.signature_data.signature_counter as u32);
-        let signature_value = try_or_return!(|| finish_transaction_response.signature_data.signature_base64.decode(), |err| {
-            error!("{}", err);
-            ReturnCode::RetrieveLogMessageFailed.into()
-        });
-        ffi::set_byte_buf(signatureValue, signature_value.as_slice());
-        ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
-    }
+    ffi::set_i64_ptr(logTime, finish_transaction_response.time_stamp.timestamp());
+    ffi::set_u32_ptr(signatureCounter, finish_transaction_response.signature_data.signature_counter as u32);
+    let signature_value = try_or_return!(|| finish_transaction_response.signature_data.signature_base64.decode(), |err| {
+        error!("{}", err);
+        ReturnCode::RetrieveLogMessageFailed.into()
+    });
+    ffi::set_byte_buf(signatureValue, signature_value.as_slice());
+    ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
 
     ReturnCode::ExecutionOk.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberAndClientId(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberAndClientId(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportDataFilteredByTransactionNumberAndClientId");
 
     exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber, clientId, clientIdLength, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumber(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumber(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportDataFilteredByTransactionNumber");
 
     exportDataFilteredByTransactionNumberWithTse(transactionNumber, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberWithTse(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberWithTse(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberInterval(startTransactionNumber: u32, endTransactionNumber: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberInterval(startTransactionNumber: u32, endTransactionNumber: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportDataFilteredByTransactionNumberInterval");
 
     exportDataFilteredByTransactionNumberIntervalWithTse(startTransactionNumber, endTransactionNumber, maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberIntervalWithTse(startTransactionNumber: u32, endTransactionNumber: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberIntervalWithTse(startTransactionNumber: u32, endTransactionNumber: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(startTransactionNumber, endTransactionNumber, "".as_ptr() as *const i8, 0, maximumNumberRecords, exportedData, exportedDataLength, configEntry, configEntryLength)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientId(startTransactionNumber: u32, endTransactionNumber: u32, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientId(startTransactionNumber: u32, endTransactionNumber: u32, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportDataFilteredByTransactionNumberIntervalAndClientId");
 
     exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
@@ -446,8 +468,11 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientId(startTran
     )
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
     startTransactionNumber: u32,
     endTransactionNumber: u32,
     clientId: *const i8,
@@ -461,50 +486,62 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByPeriodOfTime(startDate: i64, endDate: i64, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByPeriodOfTime(startDate: i64, endDate: i64, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportDataFilteredByPeriodOfTime");
 
     exportDataFilteredByPeriodOfTimeWithTse(startDate, endDate, maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByPeriodOfTimeWithTse(startDate: i64, endDate: i64, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByPeriodOfTimeWithTse(startDate: i64, endDate: i64, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate, endDate, "".as_ptr() as *const i8, 0, maximumNumberRecords, exportedData, exportedDataLength, configEntry, configEntryLength)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByPeriodOfTimeAndClientId(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByPeriodOfTimeAndClientId(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportDataFilteredByPeriodOfTimeAndClientId");
 
     exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate, endDate, clientId, clientIdLength, maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
-extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+pub unsafe extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportData");
 
     exportDataWithTse(maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub unsafe extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     exportDataWithClientIdWithTse("".as_ptr() as *const i8, 0, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn exportDataWithClientId(clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+pub unsafe extern "C" fn exportDataWithClientId(clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
     log::info!("{}", "exportData");
 
     exportDataWithClientIdWithTse(clientId, clientIdLength, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
-extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub unsafe extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let client = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength)), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
@@ -555,67 +592,77 @@ extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clientIdLength:
         return ReturnCode::Unknown.into();
     }
 
-    unsafe {
-        ffi::set_byte_buf(exportedData, export_data.as_slice());
-        ffi::set_u32_ptr(exportedDataLength, export_data.len() as u32);
-    }
+    ffi::set_byte_buf(exportedData, export_data.as_slice());
+    ffi::set_u32_ptr(exportedDataLength, export_data.len() as u32);
 
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn exportCertificates(certificates: *mut *mut u8, certificatesLength: *mut u32) -> i32 {
+pub unsafe extern "C" fn exportCertificates(certificates: *mut *mut u8, certificatesLength: *mut u32) -> i32 {
     log::info!("{}", "exportCertificates");
 
     exportCertificatesWithTse(certificates, certificatesLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn exportCertificatesWithTse(certificates: *mut *mut u8, certificatesLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unsafe { super::asigntse::at_getCertificateWithTse(certificates, certificatesLength, configEntry, configEntryLength) }
+pub unsafe extern "C" fn exportCertificatesWithTse(certificates: *mut *mut u8, certificatesLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+    super::asigntse::at_getCertificateWithTse(certificates, certificatesLength, configEntry, configEntryLength)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn restoreFromBackup(restoreData: *mut u8, restoreDataLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn restoreFromBackup(restoreData: *mut u8, restoreDataLength: u32) -> i32 {
     log::info!("{}", "restoreFromBackup");
 
     restoreFromBackupWithTse(restoreData, restoreDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn restoreFromBackupWithTse(restoreData: *mut u8, restoreDataLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn restoreFromBackupWithTse(restoreData: *mut u8, restoreDataLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn readLogMessage(logMessage: *mut *mut u8, logMessageLength: *mut u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn readLogMessage(logMessage: *mut *mut u8, logMessageLength: *mut u32) -> i32 {
     log::info!("{}", "readLogMessage");
 
     readLogMessageWithTse(logMessage, logMessageLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn readLogMessageWithTse(logMessage: *mut *mut u8, logMessageLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn readLogMessageWithTse(logMessage: *mut *mut u8, logMessageLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
-extern "C" fn exportSerialNumbers(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32) -> i32 {
+pub unsafe extern "C" fn exportSerialNumbers(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32) -> i32 {
     log::info!("{}", "exportSerialNumbers");
 
     exportSerialNumbersWithTse(serialNumbers, serialNumbersLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn exportSerialNumbersWithTse(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    unsafe { super::asigntse::at_getSerialNumberWithTse(serialNumbers, serialNumbersLength, configEntry, configEntryLength) }
+pub unsafe extern "C" fn exportSerialNumbersWithTse(serialNumbers: *mut *mut u8, serialNumbersLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+    super::asigntse::at_getSerialNumberWithTse(serialNumbers, serialNumbersLength, configEntry, configEntryLength)
 }
 
 #[no_mangle]
-extern "C" fn getMaxNumberOfClients(maxNumberClients: *mut u32) -> i32 {
+pub unsafe extern "C" fn getMaxNumberOfClients(maxNumberClients: *mut u32) -> i32 {
     log::info!("{}", "getMaxNumberOfClients");
 
-    unsafe { getMaxNumberOfClientsWithTse(maxNumberClients, b"default".as_ptr() as *const i8, "default".len() as u32) }
+    getMaxNumberOfClientsWithTse(maxNumberClients, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
@@ -630,116 +677,122 @@ pub unsafe extern "C" fn getMaxNumberOfClientsWithTse(maxNumberClients: *mut u32
 }
 
 #[no_mangle]
-extern "C" fn getCurrentNumberOfClients(currentNumberClients: *mut u32) -> i32 {
+pub unsafe extern "C" fn getCurrentNumberOfClients(currentNumberClients: *mut u32) -> i32 {
     log::info!("{}", "getCurrentNumberOfClients");
 
     getCurrentNumberOfClientsWithTse(currentNumberClients, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn getCurrentNumberOfClientsWithTse(currentNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub unsafe extern "C" fn getCurrentNumberOfClientsWithTse(currentNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(currentNumberClients, tse_info.current_number_of_clients as u32) };
+    ffi::set_u32_ptr(currentNumberClients, tse_info.current_number_of_clients as u32);
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn getMaxNumberOfTransactions(maxNumberTransactions: *mut u32) -> i32 {
+pub unsafe extern "C" fn getMaxNumberOfTransactions(maxNumberTransactions: *mut u32) -> i32 {
     log::info!("{}", "getMaxNumberOfTransactions");
 
     getMaxNumberOfTransactionsWithTse(maxNumberTransactions, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub unsafe extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32) };
+    ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32);
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn getCurrentNumberOfTransactions(currentNumberTransactions: *mut u32) -> i32 {
+pub unsafe extern "C" fn getCurrentNumberOfTransactions(currentNumberTransactions: *mut u32) -> i32 {
     log::info!("{}", "getCurrentNumberOfTransactions");
 
     getCurrentNumberOfTransactionsWithTse(currentNumberTransactions, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub unsafe extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32) };
+    ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32);
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn getSupportedTransactionUpdateVariants(supportedUpdateVariants: *mut UpdateVariants) -> i32 {
+pub extern "C" fn getSupportedTransactionUpdateVariants(supportedUpdateVariants: *mut UpdateVariants) -> i32 {
     log::info!("{}", "getSupportedTransactionUpdateVariants");
 
     getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants: *mut UpdateVariants, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn getSupportedTransactionUpdateVariantsWithTse(supportedUpdateVariants: *mut UpdateVariants, configEntry: *const i8, configEntryLength: u32) -> i32 {
     unsafe { ffi::set_u32_ptr(supportedUpdateVariants as *mut u32, UpdateVariants::SignedAndUnsigned.into()) }
     ReturnCode::ExecutionOk.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn deleteStoredData() -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn deleteStoredData() -> i32 {
     log::info!("{}", "deleteStoredData");
 
     deleteStoredDataWithTse(b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn deleteStoredDataWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn deleteStoredDataWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
-extern "C" fn authenticateUser(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16) -> i32 {
+pub extern "C" fn authenticateUser(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16) -> i32 {
     log::info!("{}", "authenticateUser");
 
     authenticateUserWithTse(userId, userIdLength, pin, pinLength, authenticationResult, remainingRetries, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn authenticateUserWithTse(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn authenticateUserWithTse(userId: *const i8, userIdLength: u32, pin: *const u8, pinLength: u32, authenticationResult: *mut AuthenticationResult, remainingRetries: *mut i16, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn logOut(userId: *const i8, userIdLength: u32) -> i32 {
+pub extern "C" fn logOut(userId: *const i8, userIdLength: u32) -> i32 {
     log::info!("{}", "logOut");
 
     logOutWithTse(userId, userIdLength, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn logOutWithTse(userId: *const i8, userIdLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn logOutWithTse(userId: *const i8, userIdLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]
-extern "C" fn unblockUser(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult) -> i32 {
+pub extern "C" fn unblockUser(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult) -> i32 {
     log::info!("{}", "unblockUser");
 
     unblockUserWithTse(userId, userIdLength, puk, pukLength, newPin, newPinLength, unblockResult, b"default".as_ptr() as *const i8, "default".len() as u32)
 }
 
 #[no_mangle]
-extern "C" fn unblockUserWithTse(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult, configEntry: *const i8, configEntryLength: u32) -> i32 {
+pub extern "C" fn unblockUserWithTse(userId: *const i8, userIdLength: u32, puk: *const i8, pukLength: u32, newPin: *const i8, newPinLength: u32, unblockResult: *mut UnblockResult, configEntry: *const i8, configEntryLength: u32) -> i32 {
     ReturnCode::ExecutionOk.into()
 }

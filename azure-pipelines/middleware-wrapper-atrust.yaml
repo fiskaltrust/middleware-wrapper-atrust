@@ -37,6 +37,9 @@ jobs:
       parameters:
         rust: $(rust)
 
+    - script: cargo check --no-default-features
+      displayName: cargo check
+
     - script: cargo test --all-features
       displayName: cargo test
 
@@ -45,6 +48,7 @@ jobs:
 
 - job: build
   displayName: Build
+  dependsOn: test
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
   strategy:
     matrix:

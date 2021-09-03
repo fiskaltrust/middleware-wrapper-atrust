@@ -2,10 +2,10 @@
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
-use crate::{config, helpers::ffi, logging, return_codes::ReturnCode};
+use crate::{config, helpers::ffi, logging, atrustapi::return_codes::ReturnCode};
 
 #[no_mangle]
-extern "C" fn cfgSetConfigFile(path: *const i8, pathLength: u32) -> i32 {
+pub extern "C" fn cfgSetConfigFile(path: *const i8, pathLength: u32) -> i32 {
     log::info!("{}", "cfgSetConfigFile");
 
     if !crate::config::set_config_file(&ffi::from_cstr(path, pathLength)) {
@@ -25,7 +25,7 @@ extern "C" fn cfgSetConfigFile(path: *const i8, pathLength: u32) -> i32 {
 }
 
 #[no_mangle]
-extern "C" fn cfgTseAdd(
+pub extern "C" fn cfgTseAdd(
     tseID: *const i8,
     tseIDLength: u32,
     tseType: u32,
@@ -45,8 +45,11 @@ extern "C" fn cfgTseAdd(
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgTseAddPremium(
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgTseAddPremium(
     tseID: *const i8,
     tseIDLength: u32,
     tseType: u32,
@@ -68,78 +71,108 @@ extern "C" fn cfgTseAddPremium(
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgTseRemove(tseID: *const i8, tseIDLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgTseRemove(tseID: *const i8, tseIDLength: u32) -> i32 {
     log::info!("{}", "cfgTseRemove");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLoggingEnabled(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLoggingEnabled(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLoggingEnabled");
 
     ReturnCode::ExecutionOk.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLoggingStderr(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLoggingStderr(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLoggingStderr");
 
     ReturnCode::ExecutionOk.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLoggingFile(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLoggingFile(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLoggingFile");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLogDir(path: *const i8, pathLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLogDir(path: *const i8, pathLength: u32) -> i32 {
     log::info!("{}", "cfgSetLogDir");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLogLevel(logLevel: *const i8, logLevelLength: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLogLevel(logLevel: *const i8, logLevelLength: u32) -> i32 {
     log::info!("{}", "cfgSetLogLevel");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLogAppend(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLogAppend(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLogAppend");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLogColors(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLogColors(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLogColors");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLogDetails(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLogDetails(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLogDetails");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetLogStderrColors(enabled: bool) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetLogStderrColors(enabled: bool) -> i32 {
     log::info!("{}", "cfgSetLogStderrColors");
 
     ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
-extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
+pub extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
     log::info!("{}", "cfgSetHttpProxy");
 
     let mut general_config = ok_or_return!(config::GENERAL_CONFIG.lock(), |err| ReturnCode::Unknown.into());
@@ -150,7 +183,7 @@ extern "C" fn cfgSetHttpProxy(proxyUrl: *const i8, proxyUrlLength: u32) -> i32 {
 }
 
 #[no_mangle]
-extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyUrlLength: u32, proxyUsername: *const i8, proxyUsernameLength: u32, proxyPassword: *const i8, proxyPasswordLength: u32) -> i32 {
+pub extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyUrlLength: u32, proxyUsername: *const i8, proxyUsernameLength: u32, proxyPassword: *const i8, proxyPasswordLength: u32) -> i32 {
     log::info!("{}", "cfgSetHttpProxyWithUsernameAndPassword");
 
     let mut general_config = ok_or_return!(config::GENERAL_CONFIG.lock(), |err| ReturnCode::Unknown.into());
@@ -162,29 +195,41 @@ extern "C" fn cfgSetHttpProxyWithUsernameAndPassword(proxyUrl: *const i8, proxyU
     ReturnCode::ExecutionOk.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetTimeout(timeout: u64) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetTimeout(timeout: u64) -> i32 {
     log::info!("{}", "cfgSetTimeout");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetRetries(retries: u64) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetRetries(retries: u64) -> i32 {
     log::info!("{}", "cfgSetRetries");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetUploadMessageInterval(interval: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetUploadMessageInterval(interval: u32) -> i32 {
     log::info!("{}", "cfgSetUploadMessageInterval");
 
     ReturnCode::NotImplemented.into()
 }
 
+/// `not implemented`
 #[no_mangle]
-extern "C" fn cfgSetMaxAuditLogSize(maximum: u32) -> i32 {
+#[cfg(feature = "not_implemented")]
+#[cfg_attr(docsrs, doc(cfg(feature = "not_implemented")))]
+pub extern "C" fn cfgSetMaxAuditLogSize(maximum: u32) -> i32 {
     log::info!("{}", "cfgSetMaxAuditLogSize");
 
     ReturnCode::NotImplemented.into()

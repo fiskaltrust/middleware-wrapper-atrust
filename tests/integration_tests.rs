@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use chrono::{TimeZone, Utc};
 use fake::{Fake, Faker};
-use middleware_wrapper_atrust::{helpers::ffi, idesscd::*, return_codes::ReturnCode};
+use middleware_wrapper_atrust::{helpers::ffi, idesscd::*, atrustapi::return_codes::ReturnCode};
 use once_cell::sync::Lazy;
 use serial_test::serial;
 use wiremock::{

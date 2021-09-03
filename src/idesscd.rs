@@ -1,3 +1,5 @@
+#![doc(hidden)]
+
 use chrono::{DateTime, Utc};
 #[cfg(feature = "mocks")]
 use fake::{Dummy, Fake};

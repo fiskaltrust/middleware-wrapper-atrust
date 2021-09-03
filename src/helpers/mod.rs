@@ -1,3 +1,4 @@
+#![doc(hidden)]
 #[allow(clippy::missing_safety_doc)]
 pub mod ffi;
 
