@@ -25,11 +25,11 @@ jobs:
 - job: test
   displayName: Run Tests
   dependsOn: []
-    strategy:
-      matrix:
-        windows:
-          vmImage: windows-latest
-          rust: stable
+  strategy:
+    matrix:
+      windows:
+        vmImage: windows-latest
+        rust: stable
   pool:
     vmImage: $(vmImage)
   steps:
@@ -46,14 +46,16 @@ jobs:
 - job: build
   displayName: Build
   dependsOn: []
-    strategy:
-      matrix:
-        windows-x64:
-          vmImage: windows-latest
-          rust: stable
-        windows-x86:
-          vmImage: windows-latest
-          rust: stable-i686
+  strategy:
+    matrix:
+      windows-x64:
+        vmImage: windows-latest
+        rust: stable
+        target: x64
+      windows-x86:
+        vmImage: windows-latest
+        rust: stable-i686
+        target: x86
   pool:
     vmImage: $(vmImage)
   steps:
@@ -70,3 +72,4 @@ jobs:
         TargetFolder: $(Build.ArtifactStagingDirectory)
 
     - publish: $(Build.ArtifactStagingDirectory)
+      artifact: x86
