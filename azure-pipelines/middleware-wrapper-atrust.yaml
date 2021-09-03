@@ -33,7 +33,7 @@ jobs:
   pool:
     vmImage: $(vmImage)
   steps:
-    - template: install-rust.yml
+    - template: templates/install-rust.yml
       parameters:
         rust: $(rust)
 
@@ -45,7 +45,7 @@ jobs:
 
 - job: build
   displayName: Build
-  dependsOn: []
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
   strategy:
     matrix:
       windows-x64:
@@ -59,7 +59,7 @@ jobs:
   pool:
     vmImage: $(vmImage)
   steps:
-    - template: install-rust.yml
+    - template: templates/install-rust.yml
       parameters:
         rust: $(rust)
 
