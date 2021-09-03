@@ -3,6 +3,7 @@ By using this native library, users who have already had implemented the A-Trust
 
 While those SCUs are normally used by our Middleware, it's also easily possible to operate them as "stand-alone" services. If you're interested in switching to a different Cloud TSE supported by the fiskaltrust.Middleware and/or this wrapper, please reach out to our [sales team](mailto:sales@fiskaltrust.de) or visit one of our frequent [webinars](https://fiskaltrust.de/webinare).
 
+3. Alter the included `asigntseonline.conf` and set the `scu_url` parameter to the REST endpoint that was configured for the SCU.
 ## Usage
 1. Download the latest binaries for your target OS's architecture (x64/x86) from the [releases page](https://github.com/fiskaltrust/middleware-wrapper-atrust/releases) or [build the binaries from source](#building-from-source).
 2. Replace the original DLL of A-Trust with this DLL.
