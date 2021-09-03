@@ -2,7 +2,6 @@
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
-use chrono::{TimeZone, Utc};
 use log::error;
 use num_enum::IntoPrimitive;
 
@@ -406,8 +405,7 @@ extern "C" fn exportDataFilteredByTransactionNumberAndClientId(transactionNumber
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberAndClientIdWithTse(transactionNumber: u32, clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(transactionNumber, 0, clientId, clientIdLength, u32::MAX, exportedData, exportedDataLength, configEntry, configEntryLength)
-    // CLARIFY: Does setting the `to` parameter to 0 work in the fiskantrust.Middleware?
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -419,8 +417,7 @@ extern "C" fn exportDataFilteredByTransactionNumber(transactionNumber: u32, expo
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByTransactionNumberWithTse(transactionNumber: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    exportDataFilteredByTransactionNumberIntervalWithTse(transactionNumber, 0, u32::MAX, exportedData, exportedDataLength, configEntry, configEntryLength)
-    // CLARIFY: Does setting the `to` parameter to 0 work in the fiskantrust.Middleware?
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -464,63 +461,7 @@ extern "C" fn exportDataFilteredByTransactionNumberIntervalAndClientIdWithTse(
     configEntry: *const i8,
     configEntryLength: u32,
 ) -> i32 {
-    let client = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength)), |err: client::Error| {
-        error!("{}", err);
-        Into::<ReturnCode>::into(err).into()
-    });
-
-    let start_export_session_by_transaction_request = StartExportSessionByTransactionRequest {
-        client_id: ffi::from_cstr(clientId, clientIdLength),
-        from: startTransactionNumber as u64,
-        to: endTransactionNumber as u64,
-    };
-
-    let start_export_session_by_transaction_response = try_or_return!(|| client.start_export_session_by_transaction(&start_export_session_by_transaction_request), |err: client::Error| {
-        error!("{}", err);
-        Into::<ReturnCode>::into(err).into()
-    });
-
-    let export_data_request = ExportDataRequest {
-        token_id: start_export_session_by_transaction_response.token_id.clone(),
-        max_chunk_size: MAX_CHUNK_SIZE,
-    };
-
-    let mut export_data: Vec<u8> = vec![];
-
-    loop {
-        let export_data_response = try_or_return!(|| client.export_data(&export_data_request), |err: client::Error| {
-            error!("{}", err);
-            Into::<ReturnCode>::into(err).into()
-        });
-
-        export_data.extend_from_slice(export_data_response.tar_file_byte_chunk_base64.as_bytes());
-
-        if export_data_response.tar_file_end_of_file {
-            break;
-        }
-    }
-
-    let end_export_session_request = EndExportSessionRequest {
-        token_id: start_export_session_by_transaction_response.token_id,
-        sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
-        erase: true, // CLARIFY: Should we always delete the exports?
-    };
-
-    let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
-        error!("{}", err);
-        Into::<ReturnCode>::into(err).into()
-    });
-
-    if !end_export_session_response.is_valid {
-        return ReturnCode::Unknown.into();
-    }
-
-    unsafe {
-        ffi::set_byte_buf(exportedData, export_data.as_slice());
-        ffi::set_u32_ptr(exportedDataLength, export_data.len() as u32);
-    }
-
-    ReturnCode::ExecutionOk.into()
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -544,24 +485,46 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientId(startDate: i64, endDat
 
 #[no_mangle]
 extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64, endDate: i64, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+    ReturnCode::NotImplemented.into()
+}
+
+#[no_mangle]
+extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportData");
+
+    exportDataWithTse(maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
+}
+
+#[no_mangle]
+extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
+    exportDataWithClientIdWithTse("".as_ptr() as *const i8, 0, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
+}
+
+#[no_mangle]
+extern "C" fn exportDataWithClientId(clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
+    log::info!("{}", "exportData");
+
+    exportDataWithClientIdWithTse(clientId, clientIdLength, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
+}
+
+extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clientIdLength: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let client = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength)), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
-    let start_export_session_by_time_stamp_request = StartExportSessionByTimeStampRequest {
+    let start_export_session_request = StartExportSessionRequest {
         client_id: ffi::from_cstr(clientId, clientIdLength),
-        from: Utc.timestamp(startDate, 0),
-        to: Utc.timestamp(endDate, 0),
+        erase: false,
     };
 
-    let start_export_session_by_time_stamp_response = try_or_return!(|| client.start_export_session_by_time_stamp(&start_export_session_by_time_stamp_request), |err: client::Error| {
+    let start_export_session_response = try_or_return!(|| client.start_export_session(&start_export_session_request), |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
 
     let export_data_request = ExportDataRequest {
-        token_id: start_export_session_by_time_stamp_response.token_id.clone(),
+        token_id: start_export_session_response.token_id.clone(),
         max_chunk_size: MAX_CHUNK_SIZE,
     };
 
@@ -581,9 +544,9 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64,
     }
 
     let end_export_session_request = EndExportSessionRequest {
-        token_id: start_export_session_by_time_stamp_response.token_id,
+        token_id: start_export_session_response.token_id,
         sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
-        erase: true, // CLARIFY: Should we always delete the exports?
+        erase: false,
     };
 
     let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
@@ -601,19 +564,6 @@ extern "C" fn exportDataFilteredByPeriodOfTimeAndClientIdWithTse(startDate: i64,
     }
 
     ReturnCode::ExecutionOk.into()
-}
-
-#[no_mangle]
-extern "C" fn exportData(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32 {
-    log::info!("{}", "exportData");
-
-    exportDataWithTse(maximumNumberRecords, exportedData, exportedDataLength, b"default".as_ptr() as *const i8, "default".len() as u32)
-}
-
-#[no_mangle]
-extern "C" fn exportDataWithTse(maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    exportDataFilteredByTransactionNumberIntervalWithTse(0, 0, maximumNumberRecords, exportedData, exportedDataLength, configEntry, configEntryLength)
-    // CLARIFY: Does setting the `ftom` and `to` parameter to 0 work in the fiskantrust.Middleware?
 }
 
 #[no_mangle]
@@ -649,7 +599,7 @@ extern "C" fn readLogMessage(logMessage: *mut *mut u8, logMessageLength: *mut u3
 
 #[no_mangle]
 extern "C" fn readLogMessageWithTse(logMessage: *mut *mut u8, logMessageLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    ReturnCode::NotImplemented.into() // CLARIFY: Can we easily read only the last log message from the fiskaltrust.Middleware?
+    ReturnCode::NotImplemented.into()
 }
 
 #[no_mangle]
@@ -714,7 +664,7 @@ extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32,
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32) }; // CLARIFY: Is this the correct value?
+    unsafe { ffi::set_u32_ptr(maxNumberTransactions, tse_info.max_number_of_started_transactions as u32) };
     ReturnCode::ExecutionOk.into()
 }
 
@@ -732,7 +682,7 @@ extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *
         Into::<ReturnCode>::into(err).into()
     });
 
-    unsafe { ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32) }; // CLARIFY: is this the correct value?
+    unsafe { ffi::set_u32_ptr(currentNumberTransactions, tse_info.current_number_of_started_transactions as u32) };
     ReturnCode::ExecutionOk.into()
 }
 

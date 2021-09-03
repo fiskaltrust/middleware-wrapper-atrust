@@ -20,7 +20,6 @@ static SCU_URL: Lazy<Option<String>> = Lazy::new(|| {
 
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
-const CONFIG_FILE_DOTNET_TARGET: &str = "./tests/middleware-wrapper-atrust-dotnet-test/asigntseonline.conf";
 
 static MOCK_IDESSCD: Lazy<MockIDeSscd> = Lazy::new(|| {
     let mut mock_idesscd = MockIDeSscd::new();
@@ -81,7 +80,6 @@ static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
         }
 
         std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
-        std::fs::write(CONFIG_FILE_DOTNET_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
 
         Mock::given(method("POST")).and(path("/v1/starttransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_transaction(&req).unwrap())).mount(&mock_server).await;
 
@@ -97,9 +95,9 @@ static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
 
         Mock::given(method("POST")).and(path("/v1/unregisterclientid")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.unregister_client_id(&req).unwrap())).mount(&mock_server).await;
 
-        Mock::given(method("GET")).and(path("/v1/executeselftest")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_self_test().unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/executeselftest")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_self_test().unwrap())).mount(&mock_server).await;
 
-        Mock::given(method("GET")).and(path("/v1/executesettsetime")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_set_tse_time().unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/executesettsetime")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_set_tse_time().unwrap())).mount(&mock_server).await;
 
         Mock::given(method("POST")).and(path("/v1/startexportsession")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session(&req).unwrap())).mount(&mock_server).await;
 
@@ -266,13 +264,13 @@ fn start_transaction() {
 
 #[test]
 #[serial]
-fn export_data_filtered_by_transaction_number_interval_and_client_id() {
+fn export_data_with_client_id() {
     Lazy::<MockServer>::force(&SETUP_MOCK_SERVER);
     let dylib = &SETUP_ATRUSTAPI;
 
-    let export_data_filtered_by_transaction_number_interval_and_client_id = unsafe {
+    let export_data_with_client_id = unsafe {
         dylib
-            .symbol::<extern "C" fn(startTransactionNumber: u32, endTransactionNumber: u32, clientId: *const i8, clientIdLength: u32, maximumNumberRecords: u32, exportedData: *mut *mut u8, exportedDataLength: *mut u32) -> i32>("exportDataFilteredByTransactionNumberIntervalAndClientId")
+            .symbol::<extern "C" fn(*const i8, u32, *mut *mut u8, *mut u32) -> i32>("exportDataWithClientId")
             .unwrap()
     };
 
@@ -281,12 +279,9 @@ fn export_data_filtered_by_transaction_number_interval_and_client_id() {
     let mut exported_data = std::mem::MaybeUninit::<*mut u8>::uninit();
     let mut exported_data_length = std::mem::MaybeUninit::<u32>::uninit();
 
-    let result: ReturnCode = ReturnCode::try_from(export_data_filtered_by_transaction_number_interval_and_client_id(
-        0,
-        1,
+    let result: ReturnCode = ReturnCode::try_from(export_data_with_client_id(
         client_id.as_bytes().as_ptr() as *const i8,
         client_id.len() as u32,
-        u32::MAX,
         exported_data.as_mut_ptr(),
         exported_data_length.as_mut_ptr(),
     ))
