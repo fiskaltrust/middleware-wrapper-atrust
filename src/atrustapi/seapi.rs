@@ -6,10 +6,10 @@ use log::error;
 use num_enum::IntoPrimitive;
 
 use crate::{
+    atrustapi::return_codes::ReturnCode,
     client::{self, Client},
     helpers::ffi,
     idesscd::*,
-    atrustapi::return_codes::ReturnCode,
 };
 
 const MAX_CHUNK_SIZE: i32 = 1000;
@@ -306,7 +306,7 @@ pub unsafe extern "C" fn updateTransactionWithTse(
     ffi::set_byte_buf(signatureValue, signature_value.as_slice());
     ffi::set_u32_ptr(signatureValueLength, signature_value.len() as u32);
 
-        ReturnCode::ExecutionOk.into()
+    ReturnCode::ExecutionOk.into()
 }
 
 #[no_mangle]

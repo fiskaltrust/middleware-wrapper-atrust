@@ -103,9 +103,9 @@ pub unsafe extern "C" fn at_getPublicKeyWithTse(pubKey: *mut *mut u8, pubKeyLeng
     });
 
     let public_key = ok_or_return!(tse_info.public_key_base64.decode(), |_| { ReturnCode::Unknown.into() });
-        ffi::set_byte_buf(pubKey, &public_key);
-        ffi::set_u32_ptr(pubKeyLength, public_key.len() as u32);
-    
+    ffi::set_byte_buf(pubKey, &public_key);
+    ffi::set_u32_ptr(pubKeyLength, public_key.len() as u32);
+
     ReturnCode::ExecutionOk.into()
 }
 
@@ -125,7 +125,7 @@ pub unsafe extern "C" fn at_getOpenTransactionsWithTse(transactionNumbers: *mut 
 
     ffi::set_u32_buf(transactionNumbers, tse_info.current_started_transaction_numbers.iter().map(|t| t.to_owned() as u32).collect::<Vec<u32>>().as_slice());
     ffi::set_u32_ptr(transactionNumbersLength, tse_info.current_number_of_started_transactions as u32);
-    
+
     ReturnCode::ExecutionOk.into()
 }
 

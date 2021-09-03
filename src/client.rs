@@ -5,7 +5,7 @@ use log::{error, warn};
 use once_cell::sync::Lazy;
 use thiserror::Error;
 
-use crate::{config, idesscd::*, atrustapi::return_codes::ReturnCode};
+use crate::{atrustapi::return_codes::ReturnCode, config, idesscd::*};
 
 fn set_client() -> reqwest::blocking::Client {
     #[derive(Debug, thiserror::Error)]

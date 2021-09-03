@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
-use crate::{config, helpers::ffi, logging, atrustapi::return_codes::ReturnCode};
+use crate::{atrustapi::return_codes::ReturnCode, config, helpers::ffi, logging};
 
 #[no_mangle]
 pub extern "C" fn cfgSetConfigFile(path: *const i8, pathLength: u32) -> i32 {
