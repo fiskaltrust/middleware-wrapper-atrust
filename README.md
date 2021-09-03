@@ -48,4 +48,5 @@ Run `cargo test --all-features`. Add `-- --nocapture` to the command to see stdo
 To run the tests on a real fiskaltrust.SCU set the `SCU_URL` environment variable to the SCU REST endpoint (e.g. `http://localhost:1401/scu_url`).
 
 ## License
-This project is licensed under the MIT License - see the `LICENSE` file for details
+
+This project is licensed under the MIT License - see the [`LICENSE`](./LICENSE) file for details
