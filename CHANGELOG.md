@@ -15,4 +15,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementations for all relevant exported functions
 
 [Unreleased]: https://github.com/fiskaltrust/middleware-wrapper-atrust/compare/v0.1.0...HEAD
-[1.0.0]: https://github.com/fiskaltrust/middleware-wrapper-atrust/releases/tag/v0.1.0
+[0.1.0]: https://github.com/fiskaltrust/middleware-wrapper-atrust/releases/tag/v0.1.0
