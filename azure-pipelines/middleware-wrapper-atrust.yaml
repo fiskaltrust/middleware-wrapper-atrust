@@ -73,8 +73,11 @@ jobs:
     - task: CopyFiles@2
       inputs:
         SourceFolder: target/release
-        Contents: '*.dll'
+        Contents: |
+          *.dll
+          asigntseonline.conf
         TargetFolder: $(Build.ArtifactStagingDirectory)
+        
 
     - publish: $(Build.ArtifactStagingDirectory)
       artifact: $(target)

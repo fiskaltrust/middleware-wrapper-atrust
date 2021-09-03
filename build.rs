@@ -1,5 +1,7 @@
 use std::env;
 
+const CONFIG_FILE: &str = "asigntseonline.conf";
+
 fn main() -> std::io::Result<()> {
     let target = env::var("TARGET").expect("TARGET was not set");
 
@@ -19,6 +21,9 @@ fn main() -> std::io::Result<()> {
         res.set("FileVersion", env!("CARGO_PKG_VERSION"));
 
         res.compile().unwrap();
+    }
+    if Ok("release".to_owned()) == env::var("PROFILE") {
+        std::fs::write(format!("./target/release/{}", CONFIG_FILE), std::fs::read_to_string(format!("./src/config/{}", CONFIG_FILE))?)?;
     }
 
     Ok(())
