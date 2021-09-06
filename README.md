@@ -42,7 +42,7 @@ Feel free to open issues about questions you have or bugs you found.
 
 If you find a bug you can solve yourself or have a feature you want to add we also happily accept pull requests.
 
-### Defelopment 
+### Development 
 
 Use the [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer) extension for visual studio code for IDE features.
 
