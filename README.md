@@ -6,14 +6,15 @@ While those SCUs are normally used by our Middleware, it's also easily possible 
 ## Usage
 1. Download the latest binaries for your target OS's architecture (x64/x86) from the [releases page](https://github.com/fiskaltrust/middleware-wrapper-atrust/releases) or [build the binaries from source](#building-from-source).
 2. Replace the original DLL of A-Trust with this DLL.
-3. Alter the included `asigntseonline.conf` and set the `scu_url` parameter to the REST endpoint that was configured for the SCU.
+3. Configure and download an SCU in the fiskaltrust.Portal
+4. Alter the included `asigntseonline.conf` and set the `scu_url` parameter to the REST endpoint that was configured for the SCU.
     ```ini
     [default]
     scu_url = http://localhost:5000/<url-as-configured-in-portal>
     ```
-4. Continue to use your existing implementation as-is.
+5. Continue to use your existing implementation as-is.
 
-Please refer to our [documentation platform](https://docs.fiskaltrust.cloud) about how to onboard PosOperators and creating and rolling out Middleware instances.
+Please refer to our [documentation platform](https://docs.fiskaltrust.cloud) about how to onboard PosOperators and creating and rolling out Middleware instances (SCUs).
 
 ### Building from source
 
