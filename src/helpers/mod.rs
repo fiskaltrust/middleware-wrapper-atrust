@@ -31,3 +31,12 @@ macro_rules! try_or_return {
         }
     };
 }
+
+macro_rules! try_wrapped_or_return {
+    ($wrapped:expr, $return:expr) => {
+        match (|| Ok($wrapped))() {
+            Ok(ok) => ok,
+            Err(err) => return $return(err),
+        }
+    };
+}

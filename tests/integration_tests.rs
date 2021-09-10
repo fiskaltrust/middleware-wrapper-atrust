@@ -2,7 +2,11 @@ use std::convert::TryFrom;
 
 use chrono::{TimeZone, Utc};
 use fake::{Fake, Faker};
-use middleware_wrapper_atrust::{atrustapi::return_codes::ReturnCode, helpers::ffi, idesscd::*};
+use middleware_wrapper_atrust::{
+    atrustapi::return_codes::ReturnCode,
+    helpers::ffi,
+    idesscd::{EndExportSessionResponse, ExportDataResponse, FinishTransactionResponse, RegisterClientIdResponse, ScuDeEchoRequest, ScuDeEchoResponse, StartExportSessionResponse, StartTransactionResponse, TseInfo, TseState, UnregisterClientIdResponse, UpdateTransactionResponse},
+};
 use once_cell::sync::Lazy;
 use serial_test::serial;
 use wiremock::{
@@ -18,32 +22,10 @@ static SCU_URL: Lazy<Option<String>> = Lazy::new(|| std::env::var("SCU_URL").ok(
 const CONFIG_FILE: &str = "./tests/asigntseonline.conf";
 const CONFIG_FILE_TARGET: &str = "./target/asigntseonline.conf";
 
-static MOCK_IDESSCD: Lazy<MockIDeSscd> = Lazy::new(|| {
-    let mut mock_idesscd = MockIDeSscd::new();
-
-    mock_idesscd.expect_get_tse_info().returning(|| Ok(Faker.fake::<TseInfo>()));
-    mock_idesscd.expect_start_transaction().returning(|_| Ok(Faker.fake::<StartTransactionResponse>()));
-    mock_idesscd.expect_update_transaction().returning(|_| Ok(Faker.fake::<UpdateTransactionResponse>()));
-    mock_idesscd.expect_finish_transaction().returning(|_| Ok(Faker.fake::<FinishTransactionResponse>()));
-    mock_idesscd.expect_set_tse_state().returning(|_| Ok(Faker.fake::<TseState>()));
-    mock_idesscd.expect_register_client_id().returning(|_| Ok(Faker.fake::<RegisterClientIdResponse>()));
-    mock_idesscd.expect_unregister_client_id().returning(|_| Ok(Faker.fake::<UnregisterClientIdResponse>()));
-    mock_idesscd.expect_execute_set_tse_time().returning(|| Ok(()));
-    mock_idesscd.expect_execute_self_test().returning(|| Ok(()));
-    mock_idesscd.expect_start_export_session().returning(|_| Ok(Faker.fake::<StartExportSessionResponse>()));
-    mock_idesscd.expect_start_export_session_by_time_stamp().returning(|_| Ok(Faker.fake::<StartExportSessionResponse>()));
-    mock_idesscd.expect_start_export_session_by_transaction().returning(|_| Ok(Faker.fake::<StartExportSessionResponse>()));
-    mock_idesscd.expect_export_data().returning(|_| Ok(Faker.fake::<ExportDataResponse>()));
-    mock_idesscd.expect_end_export_session().returning(|_| Ok(Faker.fake::<EndExportSessionResponse>()));
-    mock_idesscd.expect_echo().returning(|request| Ok(ScuDeEchoResponse { message: request.message.clone() }));
-
-    mock_idesscd
-});
-
 pub struct FakerResponder(Box<dyn Fn(String) -> String + Send + Sync>);
 
 impl FakerResponder {
-    fn post<REQ: Send + Sync + for<'de> serde::Deserialize<'de>, RES: Send + Sync + serde::Serialize, C: Fn(REQ) -> RES + 'static + Send + Sync>(mock: C) -> FakerResponder {
+    fn respond_with_reqest<REQ: Send + Sync + for<'de> serde::Deserialize<'de>, RES: Send + Sync + serde::Serialize, C: Fn(REQ) -> RES + 'static + Send + Sync>(mock: C) -> FakerResponder {
         FakerResponder(Box::new(move |req: String| {
             let de = serde_json::de::from_str(&req).unwrap();
             let res = mock(de);
@@ -51,7 +33,7 @@ impl FakerResponder {
         }))
     }
 
-    fn get<RES: Send + Sync + serde::Serialize, C: Fn() -> RES + 'static + Send + Sync>(mock: C) -> FakerResponder {
+    fn respond<RES: Send + Sync + serde::Serialize, C: Fn() -> RES + 'static + Send + Sync>(mock: C) -> FakerResponder {
         FakerResponder(Box::new(move |_: String| {
             let res = mock();
             serde_json::to_string(&res).unwrap()
@@ -78,43 +60,47 @@ static SETUP_MOCK_SERVER: Lazy<MockServer> = Lazy::new(|| {
 
         std::fs::write(CONFIG_FILE_TARGET, config.replace("{{ scu_url }}", &mock_server.uri())).unwrap();
 
-        Mock::given(method("POST")).and(path("/v1/starttransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_transaction(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/starttransaction")).respond_with(FakerResponder::respond(|| Faker.fake::<StartTransactionResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/updatetransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.update_transaction(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/updatetransaction")).respond_with(FakerResponder::respond(|| Faker.fake::<UpdateTransactionResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/finishtransaction")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.finish_transaction(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/finishtransaction")).respond_with(FakerResponder::respond(|| Faker.fake::<FinishTransactionResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("GET")).and(path("/v1/tseinfo")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.get_tse_info().unwrap())).mount(&mock_server).await;
+        Mock::given(method("GET")).and(path("/v1/tseinfo")).respond_with(FakerResponder::respond(|| Faker.fake::<TseInfo>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/tsestate")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.set_tse_state(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/tsestate")).respond_with(FakerResponder::respond(|| Faker.fake::<TseState>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/registerclientid")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.register_client_id(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/registerclientid")).respond_with(FakerResponder::respond(|| Faker.fake::<RegisterClientIdResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/unregisterclientid")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.unregister_client_id(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/unregisterclientid")).respond_with(FakerResponder::respond(|| Faker.fake::<UnregisterClientIdResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/executeselftest")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_self_test().unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/executeselftest")).respond_with(ResponseTemplate::new(200)).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/executesettsetime")).respond_with(FakerResponder::get(|| MOCK_IDESSCD.execute_set_tse_time().unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/executesettsetime")).respond_with(ResponseTemplate::new(200)).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/startexportsession")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/startexportsession")).respond_with(FakerResponder::respond(|| Faker.fake::<StartExportSessionResponse>())).mount(&mock_server).await;
 
         Mock::given(method("POST"))
             .and(path("/v1/startexportsessionbytimestamp"))
-            .respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session_by_time_stamp(&req).unwrap()))
+            .respond_with(FakerResponder::respond(|| Faker.fake::<StartExportSessionResponse>()))
             .mount(&mock_server)
             .await;
 
         Mock::given(method("POST"))
             .and(path("/v1/startexportsessionbytransaction"))
-            .respond_with(FakerResponder::post(|req| MOCK_IDESSCD.start_export_session_by_transaction(&req).unwrap()))
+            .respond_with(FakerResponder::respond(|| Faker.fake::<StartExportSessionResponse>()))
             .mount(&mock_server)
             .await;
 
-        Mock::given(method("POST")).and(path("/v1/exportdata")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.export_data(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/exportdata")).respond_with(FakerResponder::respond(|| Faker.fake::<ExportDataResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/endexportsession")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.end_export_session(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST")).and(path("/v1/endexportsession")).respond_with(FakerResponder::respond(|| Faker.fake::<EndExportSessionResponse>())).mount(&mock_server).await;
 
-        Mock::given(method("POST")).and(path("/v1/echo")).respond_with(FakerResponder::post(|req| MOCK_IDESSCD.echo(&req).unwrap())).mount(&mock_server).await;
+        Mock::given(method("POST"))
+            .and(path("/v1/echo"))
+            .respond_with(FakerResponder::respond_with_reqest(|req: ScuDeEchoRequest| ScuDeEchoResponse { message: req.message }))
+            .mount(&mock_server)
+            .await;
 
         mock_server
     })

@@ -4,10 +4,10 @@ use chrono::{DateTime, Utc};
 #[cfg(feature = "mocks")]
 use fake::{Dummy, Fake};
 #[cfg(feature = "mocks")]
-use mockall::{predicate::*, *};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use uuid::Uuid;
+use restcrab::{crabs::reqwest::*, restcrab};
 
 #[cfg(feature = "mocks")]
 use crate::helpers::fakers::*;
@@ -266,27 +266,50 @@ pub struct ScuDeEchoResponse {
     pub message: String,
 }
 
-#[cfg(feature = "mocks")]
-#[derive(Debug, thiserror::Error)]
-pub enum Error {}
-
-#[cfg_attr(feature = "mocks", automock(type Error = Error;))]
+#[restcrab(crab = "Reqwest")]
 pub trait IDeSscd {
-    type Error: std::error::Error;
+    #[restcrab(method = "POST", uri = "/v1/starttransaction")]
+    fn start_transaction(#[body] request: &StartTransactionRequest) -> StartTransactionResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/updatetransaction")]
+    fn update_transaction(#[body] request: &UpdateTransactionRequest) -> UpdateTransactionResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/finishtransaction")]
+    fn finish_transaction(#[body] request: &FinishTransactionRequest) -> FinishTransactionResponse;
+    
+    #[restcrab(method = "GET", uri = "/v1/tseinfo")]
+    fn get_tse_info() -> TseInfo;
+    
+    #[restcrab(method = "POST", uri = "/v1/tsestate")]
+    fn set_tse_state(#[body] state: &TseState) -> TseState;
+    
+    #[restcrab(method = "POST", uri = "/v1/registerclientid")]
+    fn register_client_id(#[body] request: &RegisterClientIdRequest) -> RegisterClientIdResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/unregisterclientid")]
+    fn unregister_client_id(#[body] request: &UnregisterClientIdRequest) -> UnregisterClientIdResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/executesettsetime")]
+    fn execute_set_tse_time();
+    
+    #[restcrab(method = "POST", uri = "/v1/executeselftest")]
+    fn execute_self_test();
+    
+    #[restcrab(method = "POST", uri = "/v1/startexportsession")]
+    fn start_export_session(#[body] request: &StartExportSessionRequest) -> StartExportSessionResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/startexportsessionbytimestamp")]
+    fn start_export_session_by_time_stamp(#[body] request: &StartExportSessionByTimeStampRequest) -> StartExportSessionResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/startexportsessionbytransaction")]
+    fn start_export_session_by_transaction(#[body] request: &StartExportSessionByTransactionRequest) -> StartExportSessionResponse;
 
-    fn start_transaction(&self, request: &StartTransactionRequest) -> Result<StartTransactionResponse, Self::Error>;
-    fn update_transaction(&self, request: &UpdateTransactionRequest) -> Result<UpdateTransactionResponse, Self::Error>;
-    fn finish_transaction(&self, request: &FinishTransactionRequest) -> Result<FinishTransactionResponse, Self::Error>;
-    fn get_tse_info(&self) -> Result<TseInfo, Self::Error>;
-    fn set_tse_state(&self, state: &TseState) -> Result<TseState, Self::Error>;
-    fn register_client_id(&self, request: &RegisterClientIdRequest) -> Result<RegisterClientIdResponse, Self::Error>;
-    fn unregister_client_id(&self, request: &UnregisterClientIdRequest) -> Result<UnregisterClientIdResponse, Self::Error>;
-    fn execute_set_tse_time(&self) -> Result<(), Self::Error>;
-    fn execute_self_test(&self) -> Result<(), Self::Error>;
-    fn start_export_session(&self, request: &StartExportSessionRequest) -> Result<StartExportSessionResponse, Self::Error>;
-    fn start_export_session_by_time_stamp(&self, request: &StartExportSessionByTimeStampRequest) -> Result<StartExportSessionResponse, Self::Error>;
-    fn start_export_session_by_transaction(&self, request: &StartExportSessionByTransactionRequest) -> Result<StartExportSessionResponse, Self::Error>;
-    fn export_data(&self, request: &ExportDataRequest) -> Result<ExportDataResponse, Self::Error>;
-    fn end_export_session(&self, request: &EndExportSessionRequest) -> Result<EndExportSessionResponse, Self::Error>;
-    fn echo(&self, request: &ScuDeEchoRequest) -> Result<ScuDeEchoResponse, Self::Error>;
+    #[restcrab(method = "POST", uri = "/v1/exportdata")]
+    fn export_data(#[body] request: &ExportDataRequest) -> ExportDataResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/endexportsession")]
+    fn end_export_session(#[body] request: &EndExportSessionRequest) -> EndExportSessionResponse;
+    
+    #[restcrab(method = "POST", uri = "/v1/echo")]
+    fn echo(#[body] request: &ScuDeEchoRequest) -> ScuDeEchoResponse;
 }

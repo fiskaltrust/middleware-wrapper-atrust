@@ -4,6 +4,7 @@
 
 use log::error;
 use num_enum::IntoPrimitive;
+use restcrab::crabs::reqwest;
 
 use crate::{
     atrustapi::return_codes::ReturnCode,
@@ -76,7 +77,7 @@ pub extern "C" fn initializeDescriptionSet() -> i32 {
 pub extern "C" fn initializeDescriptionSetWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_state = TseState { current_state: TseStates::Initialized };
 
-    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
+    try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state)?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -105,7 +106,7 @@ pub extern "C" fn updateTimeWithTimeSync() -> i32 {
 
 #[no_mangle]
 pub extern "C" fn updateTimeWithTimeSyncWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.execute_set_tse_time(), |err: client::Error| {
+    try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.execute_set_tse_time()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -124,7 +125,7 @@ pub extern "C" fn disableSecureElement() -> i32 {
 pub extern "C" fn disableSecureElementWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_state = TseState { current_state: TseStates::Terminated };
 
-    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state), |err: client::Error| {
+    try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.set_tse_state(&tse_state)?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -207,11 +208,11 @@ pub unsafe extern "C" fn startTransactionWithTse(
         tse_serial_number_octet,
         client_id,
         signature_data,
-    } = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.start_transaction(&start_transaction_request), |err: client::Error| {
+    } = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.start_transaction(&start_transaction_request)?, |err: client::Error| {
         error!("{}", err);
-        match err {
-            client::Error::Unsuccessful(_) => ReturnCode::StartTransactionFailed,
-            err => Into::<ReturnCode>::into(err),
+        match err.reqwest_eror() {
+            Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::StartTransactionFailed,
+            _ => Into::<ReturnCode>::into(err),
         }
         .into()
     });
@@ -288,11 +289,11 @@ pub unsafe extern "C" fn updateTransactionWithTse(
         transaction_number: transactionNumber as u64,
     };
 
-    let update_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.update_transaction(&update_transaction_request), |err: client::Error| {
+    let update_transaction_response = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.update_transaction(&update_transaction_request)?, |err: client::Error| {
         error!("{}", err);
-        match err {
-            client::Error::Unsuccessful(_) => ReturnCode::UpdateTransactionFailed,
-            err => Into::<ReturnCode>::into(err),
+        match err.reqwest_eror() {
+            Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::UpdateTransactionFailed,
+            _ => Into::<ReturnCode>::into(err),
         }
         .into()
     });
@@ -373,11 +374,11 @@ pub unsafe extern "C" fn finishTransactionWithTse(
         transaction_number: transactionNumber as u64,
     };
 
-    let finish_transaction_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.finish_transaction(&finish_transaction_request), |err: client::Error| {
+    let finish_transaction_response = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.finish_transaction(&finish_transaction_request)?, |err: client::Error| {
         error!("{}", err);
-        match err {
-            client::Error::Unsuccessful(_) => ReturnCode::FinishTransactionFailed,
-            err => Into::<ReturnCode>::into(err),
+        match err.reqwest_eror() {
+            Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::FinishTransactionFailed,
+            _ => Into::<ReturnCode>::into(err),
         }
         .into()
     });
@@ -552,7 +553,7 @@ pub unsafe extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clie
         erase: false,
     };
 
-    let start_export_session_response = try_or_return!(|| client.start_export_session(&start_export_session_request), |err: client::Error| {
+    let start_export_session_response = try_wrapped_or_return!(client.start_export_session(&start_export_session_request)?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -565,7 +566,7 @@ pub unsafe extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clie
     let mut export_data: Vec<u8> = vec![];
 
     loop {
-        let export_data_response = try_or_return!(|| client.export_data(&export_data_request), |err: client::Error| {
+        let export_data_response = try_wrapped_or_return!(client.export_data(&export_data_request)?, |err: client::Error| {
             error!("{}", err);
             Into::<ReturnCode>::into(err).into()
         });
@@ -583,7 +584,7 @@ pub unsafe extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clie
         erase: false,
     };
 
-    let end_export_session_response = try_or_return!(|| client.end_export_session(&end_export_session_request), |err: client::Error| {
+    let end_export_session_response = try_wrapped_or_return!(client.end_export_session(&end_export_session_request)?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -667,7 +668,7 @@ pub unsafe extern "C" fn getMaxNumberOfClients(maxNumberClients: *mut u32) -> i3
 
 #[no_mangle]
 pub unsafe extern "C" fn getMaxNumberOfClientsWithTse(maxNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -685,7 +686,7 @@ pub unsafe extern "C" fn getCurrentNumberOfClients(currentNumberClients: *mut u3
 
 #[no_mangle]
 pub unsafe extern "C" fn getCurrentNumberOfClientsWithTse(currentNumberClients: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -703,7 +704,7 @@ pub unsafe extern "C" fn getMaxNumberOfTransactions(maxNumberTransactions: *mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn getMaxNumberOfTransactionsWithTse(maxNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -721,7 +722,7 @@ pub unsafe extern "C" fn getCurrentNumberOfTransactions(currentNumberTransaction
 
 #[no_mangle]
 pub unsafe extern "C" fn getCurrentNumberOfTransactionsWithTse(currentNumberTransactions: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });

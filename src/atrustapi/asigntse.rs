@@ -3,6 +3,7 @@
 #![allow(unused_variables)]
 
 use log::error;
+use restcrab::crabs::reqwest;
 
 use super::return_codes::ReturnCode;
 use crate::{
@@ -31,7 +32,7 @@ pub extern "C" fn at_getLifecycleState(state: *mut LifecycleState) -> i32 {
 
 #[no_mangle]
 pub extern "C" fn at_getLifecycleStateWithTse(state: *mut LifecycleState, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -79,7 +80,7 @@ pub unsafe extern "C" fn at_getCertificate(cert: *mut *mut u8, certLength: *mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getCertificateWithTse(cert: *mut *mut u8, certLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -97,7 +98,7 @@ pub unsafe extern "C" fn at_getPublicKey(pubKey: *mut *mut u8, pubKeyLength: *mu
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getPublicKeyWithTse(pubKey: *mut *mut u8, pubKeyLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -118,7 +119,7 @@ pub unsafe extern "C" fn at_getOpenTransactions(transactionNumbers: *mut *mut u3
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getOpenTransactionsWithTse(transactionNumbers: *mut *mut u32, transactionNumbersLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -156,7 +157,7 @@ pub unsafe extern "C" fn at_getSignatureCounter(counter: *mut u32) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getSignatureCounterWithTse(counter: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -174,7 +175,7 @@ pub unsafe extern "C" fn at_getSignatureAlgorithm(signatureAlgorithm: *mut *mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getSignatureAlgorithmWithTse(signatureAlgorithm: *mut *mut i8, signatureAlgorithmLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -192,7 +193,7 @@ pub unsafe extern "C" fn at_getLogTimeFormat(logTimeFormat: *mut *mut i8, logTim
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getLogTimeFormatWithTse(logTimeFormat: *mut *mut i8, logTimeFormatLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -239,7 +240,7 @@ pub unsafe extern "C" fn at_getSerialNumber(serial: *mut *mut u8, serialLength: 
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getSerialNumberWithTse(serial: *mut *mut u8, serialLength: *mut u32, tseId: *const i8, tseIdLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(tseId, tseIdLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
@@ -329,11 +330,11 @@ pub extern "C" fn at_registerClientId(clientId: *const i8, clientIdLength: u32) 
 pub extern "C" fn at_registerClientIdWithTse(clientId: *const i8, clientIdLength: u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let register_client_id_request = RegisterClientIdRequest { client_id: ffi::from_cstr(clientId, clientIdLength) };
 
-    let register_client_id_response = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.register_client_id(&register_client_id_request), |err: client::Error| {
+    let register_client_id_response = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.register_client_id(&register_client_id_request)?, |err: client::Error| {
         error!("{}", err);
-        match err {
-            client::Error::Unsuccessful(_) => ReturnCode::ClientIdNotRegistered,
-            err => Into::<ReturnCode>::into(err),
+        match err.reqwest_eror() {
+            Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::ClientIdNotRegistered,
+            _ => Into::<ReturnCode>::into(err),
         }
         .into()
     });
@@ -362,11 +363,11 @@ pub unsafe extern "C" fn at_getRegisteredClients(clients: *mut *mut u8, clientsL
 
 #[no_mangle]
 pub unsafe extern "C" fn at_getRegisteredClientsWithTse(clients: *mut *mut u8, clientsLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
-    let tse_info = try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info(), |err: client::Error| {
+    let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
-        match err {
-            client::Error::Unsuccessful(_) => ReturnCode::CannotRetrieveRegisteredClientIds,
-            err => Into::<ReturnCode>::into(err),
+        match err.reqwest_eror() {
+            Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::CannotRetrieveRegisteredClientIds,
+            _ => Into::<ReturnCode>::into(err),
         }
         .into()
     });
@@ -448,7 +449,7 @@ pub extern "C" fn at_runSelfTests() -> i32 {
 
 #[no_mangle]
 pub extern "C" fn at_runSelfTestsWithTse(configEntry: *const i8, configEntryLength: u32) -> i32 {
-    try_or_return!(|| Client::get(ffi::from_cstr(configEntry, configEntryLength))?.execute_self_test(), |err: client::Error| {
+    try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.execute_self_test()?, |err: client::Error| {
         error!("{}", err);
         Into::<ReturnCode>::into(err).into()
     });
