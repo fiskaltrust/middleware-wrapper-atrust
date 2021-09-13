@@ -49,7 +49,7 @@ impl Client {
     pub fn get(tse_id: String) -> Result<IDeSscdClient, Error> {
         Ok(IDeSscdClient::from_options(reqwest::Options {
             base_url: format!("{}/{}", config::get_tss(&tse_id).ok_or(Error::NoScuUrl(tse_id))?.scu_url, URL_VERSION).parse()?,
-        }))
+        })?)
     }
 }
 
