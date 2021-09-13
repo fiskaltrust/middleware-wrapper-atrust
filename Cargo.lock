@@ -1470,6 +1470,8 @@ dependencies = [
 [[package]]
 name = "restcrab"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47be497de4499353749f243bc6f989d626b3087661576ea0012a66c5e643de51"
 dependencies = [
  "http",
  "reqwest",
@@ -1482,6 +1484,8 @@ dependencies = [
 [[package]]
 name = "restcrab_macros"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dee97cef7b405b1e52495eb3e91e31c848bfe754309dc3d831527241d8c89c04"
 dependencies = [
  "darling 0.13.0",
  "http",
