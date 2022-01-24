@@ -200,7 +200,7 @@ fn parse_config(gconf: &mut GeneralConfig) -> HashMap<String, Config> {
 
     if let Some(ini) = INI.load_full() {
         for (s_name, section) in ini.iter() {
-            let sec: HashMap<&String, &String> = section.collect();
+            let sec: HashMap<&String, &String> = section.iter().collect();
 
             if s_name == "default" {
                 continue;
