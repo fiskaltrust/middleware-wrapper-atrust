@@ -332,7 +332,7 @@ pub extern "C" fn at_registerClientIdWithTse(clientId: *const i8, clientIdLength
 
     let register_client_id_response = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.register_client_id(&register_client_id_request)?, |err: client::Error| {
         error!("{}", err);
-        match err.reqwest_eror() {
+        match err.reqwest_error() {
             Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::ClientIdNotRegistered,
             _ => Into::<ReturnCode>::into(err),
         }
@@ -365,7 +365,7 @@ pub unsafe extern "C" fn at_getRegisteredClients(clients: *mut *mut u8, clientsL
 pub unsafe extern "C" fn at_getRegisteredClientsWithTse(clients: *mut *mut u8, clientsLength: *mut u32, configEntry: *const i8, configEntryLength: u32) -> i32 {
     let tse_info = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.get_tse_info()?, |err: client::Error| {
         error!("{}", err);
-        match err.reqwest_eror() {
+        match err.reqwest_error() {
             Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::CannotRetrieveRegisteredClientIds,
             _ => Into::<ReturnCode>::into(err),
         }

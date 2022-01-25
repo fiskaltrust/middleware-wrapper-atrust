@@ -25,7 +25,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn reqwest_eror(&self) -> Option<&reqwest::Error> {
+    pub fn reqwest_error(&self) -> Option<&reqwest::Error> {
         if let Error::RequestFailed { source } = self {
             Some(source)
         } else {

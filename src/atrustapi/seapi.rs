@@ -210,7 +210,7 @@ pub unsafe extern "C" fn startTransactionWithTse(
         signature_data,
     } = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.start_transaction(&start_transaction_request)?, |err: client::Error| {
         error!("{}", err);
-        match err.reqwest_eror() {
+        match err.reqwest_error() {
             Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::StartTransactionFailed,
             _ => Into::<ReturnCode>::into(err),
         }
@@ -291,7 +291,7 @@ pub unsafe extern "C" fn updateTransactionWithTse(
 
     let update_transaction_response = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.update_transaction(&update_transaction_request)?, |err: client::Error| {
         error!("{}", err);
-        match err.reqwest_eror() {
+        match err.reqwest_error() {
             Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::UpdateTransactionFailed,
             _ => Into::<ReturnCode>::into(err),
         }
@@ -376,7 +376,7 @@ pub unsafe extern "C" fn finishTransactionWithTse(
 
     let finish_transaction_response = try_wrapped_or_return!(Client::get(ffi::from_cstr(configEntry, configEntryLength))?.finish_transaction(&finish_transaction_request)?, |err: client::Error| {
         error!("{}", err);
-        match err.reqwest_eror() {
+        match err.reqwest_error() {
             Some(reqwest::Error::UnsuccessfulResponseCode { response }) => ReturnCode::FinishTransactionFailed,
             _ => Into::<ReturnCode>::into(err),
         }
