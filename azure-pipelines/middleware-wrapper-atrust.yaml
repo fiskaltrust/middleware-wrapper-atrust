@@ -48,7 +48,6 @@ jobs:
 
 - job: build
   displayName: Build
-  dependsOn: test
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
   strategy:
     matrix:
