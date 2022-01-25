@@ -1,7 +1,7 @@
 [package]
 name = "middleware-wrapper-atrust"
-version = "0.1.1"
-edition = "2018"
+version = "0.1.2"
+edition = "2021"
 
 [features]
 default = [ "not_implemented" ]
