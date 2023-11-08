@@ -579,7 +579,7 @@ pub unsafe extern "C" fn exportDataWithClientIdWithTse(clientId: *const i8, clie
 
     let end_export_session_request = EndExportSessionRequest {
         token_id: start_export_session_response.token_id,
-        sha256_checksum_base64: sha256::digest_bytes(export_data.as_slice()),
+        sha256_checksum_base64: sha256::digest(export_data.as_slice()),
         erase: false,
     };
 

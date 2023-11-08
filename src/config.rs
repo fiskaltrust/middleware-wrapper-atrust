@@ -100,7 +100,7 @@ static INI: Lazy<ArcSwapOption<Ini>> = Lazy::new(|| ArcSwapOption::from(set_ini(
 fn set_configs() -> HashMap<String, Config> {
     let mut gconf = GENERAL_CONFIG.lock().unwrap();
 
-    parse_config(&mut *gconf)
+    parse_config(&mut gconf)
 }
 
 pub static CONFIGS: Lazy<Mutex<HashMap<String, Config>>> = Lazy::new(|| Mutex::new(set_configs()));

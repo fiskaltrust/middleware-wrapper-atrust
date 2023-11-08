@@ -6,12 +6,13 @@ pub mod ffi;
 pub mod fakers;
 
 macro_rules! ok_or_return {
-    ($wrapped:expr, $return:expr) => {
+    ($wrapped:expr, $return:expr) => {{
+        #[allow(clippy::redundant_closure_call)]
         match $wrapped {
             Ok(ok) => ok,
             Err(err) => return $return(err),
         }
-    };
+    }};
 }
 
 macro_rules! some_or_return {
@@ -24,10 +25,11 @@ macro_rules! some_or_return {
 }
 
 macro_rules! try_or_return {
-    ($wrapped:expr, $return:expr) => {
+    ($wrapped:expr, $return:expr) => {{
+        #[allow(clippy::redundant_closure_call)]
         match $wrapped() {
             Ok(ok) => ok,
             Err(err) => return $return(err),
         }
-    };
+    }};
 }
